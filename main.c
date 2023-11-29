@@ -5,14 +5,6 @@
 #define MAX_LINE 1024
 #define MAX_ARGC 50
 
-#define countof(arr) (sizeof(arr) / sizeof(arr[0]))
-
-
-
-void default_cmd_handler(int argc, char **argv);
-
-
-
 void execute(int argc, char **argv)
 {
     const cmd *c = get_cmd_info(argv[0]);
