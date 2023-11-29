@@ -5,7 +5,7 @@
 #define MAX_LINE 1024
 #define MAX_ARGC 50
 
-void execute(int argc, char **argv)
+void execute(int argc,const char **argv)
 {
     const cmd *c = get_cmd_info(argv[0]);
     if (c == NULL)
@@ -25,7 +25,7 @@ int main(int argc, char **argv)
 
     int arg_count;
     char args[MAX_ARGC][MAX_LINE];
-    char *arg_vector[MAX_ARGC];
+    const char *arg_vector[MAX_ARGC];
 
     for (int i = 0; i < MAX_ARGC; ++i)
         arg_vector[i] = args[i];

@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-#define DEFAULT_HELP_TEXT ""
+#define DEFAULT_HELP_TEXT "Unimplemented command."
 
 typedef struct cmd
 {

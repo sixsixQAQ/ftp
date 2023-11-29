@@ -9,7 +9,7 @@
 #define countof(arr) (sizeof(arr) / sizeof(arr[0]))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-static void default_cmd_handler (int argc, char **argv)
+static void default_cmd_handler (int argc,const  char **argv)
 {
 	printf ("Command '%s' haven't be implemented.\n", argv[0]);
 }
@@ -24,7 +24,10 @@ const cmd g_cmd_tables[] =
 	{"MODE", "mode", DEFAULT_HELP_TEXT, default_cmd_handler},
 	{"STRU", "struct", DEFAULT_HELP_TEXT, default_cmd_handler},
 	{"RETR", "get", DEFAULT_HELP_TEXT, default_cmd_handler},
-	{"STOR", "put", DEFAULT_HELP_TEXT, default_cmd_handler}
+	{"STOR", "put", DEFAULT_HELP_TEXT, default_cmd_handler},
+	{"QUIT","bye", DEFAULT_HELP_TEXT,default_cmd_handler},
+	{"!",	"!",	DEFAULT_HELP_TEXT,default_cmd_handler},
+	{"?",	"?",	DEFAULT_HELP_TEXT,default_cmd_handler}
 };
 
 size_t get_cmd_count()
