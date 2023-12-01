@@ -26,6 +26,7 @@ const cmd g_cmd_tables[] =
 	{"RETR", "get", DEFAULT_HELP_TEXT, default_cmd_handler},
 	{"STOR", "put", DEFAULT_HELP_TEXT, default_cmd_handler},
 	{"QUIT","bye", DEFAULT_HELP_TEXT,default_cmd_handler},
+	{"","open",DEFAULT_HELP_TEXT,default_cmd_handler},
 	{"!",	"!",	DEFAULT_HELP_TEXT,default_cmd_handler},
 	{"?",	"?",	DEFAULT_HELP_TEXT,default_cmd_handler}
 };

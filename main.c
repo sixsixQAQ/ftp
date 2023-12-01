@@ -10,7 +10,7 @@ void execute(int argc,const char **argv)
     const cmd *c = get_cmd_info(argv[0]);
     if (c == NULL)
     {
-        printf("Invalid Command.\n");
+        printf("?Invalid Command.\n");
         return;
     }
     else
