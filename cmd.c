@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "help_handler.h"
+#include "open_handler.h"
 
 #define countof(arr) (sizeof(arr) / sizeof(arr[0]))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -26,7 +27,7 @@ const cmd g_cmd_tables[] =
 	{"RETR", "get", DEFAULT_HELP_TEXT, default_cmd_handler},
 	{"STOR", "put", DEFAULT_HELP_TEXT, default_cmd_handler},
 	{"QUIT","bye", DEFAULT_HELP_TEXT,default_cmd_handler},
-	{"","open",DEFAULT_HELP_TEXT,default_cmd_handler},
+	{"","open","connect to remote FTP server",open_handler},
 	{"!",	"!",	DEFAULT_HELP_TEXT,default_cmd_handler},
 	{"?",	"?",	DEFAULT_HELP_TEXT,default_cmd_handler}
 };
