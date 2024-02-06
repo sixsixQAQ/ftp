@@ -1,4 +1,4 @@
 .vscode
-.build
-.main
-.main.exe
+build
+main
+main.exe
