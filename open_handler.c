@@ -1,9 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <arpa/inet.h>
+#include <err.h>
+#include <string.h>
+
+#include "context_data.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
-#include <arpa/inet.h>
 #include <sys/types.h>
 #endif
 
@@ -19,7 +23,7 @@ static void usage_open()
  */
 void open_handler(int argc, char **argv)
 {
-    u_short port;
+    uint16_t port;
     char ip[sizeof("XXX.XXX.XXX.XXX")];
 
     if (argc != 2 && argc != 3)
@@ -43,6 +47,18 @@ void open_handler(int argc, char **argv)
     struct sockaddr_in server_addr;
     server_addr.sin_port = htons(port);
     server_addr.sin_family = AF_INET;
-    // server_addr.sin_addr.s_addr = 
-    inet_pto
+    inet_pton(AF_INET,ip, &server_addr.sin_addr.s_addr);
+
+    int fd = socket(AF_INET,SOCK_STREAM, 0);
+    if(fd == -1) {
+        err(-1, "%s %d %s\n", __FILE__, __LINE__, __FUNCTION__);
+    }
+
+    if(connect(fd, (struct sockaddr*)&server_addr,sizeof(server_addr)) == -1) {
+        err(-1, "%s %d %s\n", __FILE__, __LINE__, __FUNCTION__);
+    }
+
+    get_shared_context()->is_control_connection_on  = true;
+    get_shared_context()->control_connection_fd = fd;
+
 }

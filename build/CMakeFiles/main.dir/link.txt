@@ -1,0 +1,1 @@
+/usr/bin/cc   -rdynamic CMakeFiles/main.dir/cmd.c.o CMakeFiles/main.dir/context_data.c.o CMakeFiles/main.dir/help_handler.c.o CMakeFiles/main.dir/main.c.o CMakeFiles/main.dir/open_handler.c.o CMakeFiles/main.dir/protocol_config.c.o CMakeFiles/main.dir/user_handler.c.o  -o main 
