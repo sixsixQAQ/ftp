@@ -11,6 +11,8 @@
 
 static void syncFile(int inFd, int outFd)
 {
+    if (inFd < 0)
+        return;
     char buf[4096];
     for (;;)
     {
@@ -25,7 +27,7 @@ static void syncFile(int inFd, int outFd)
             return;
         }
 
-        if (outFd == -1)
+        if (outFd < 0)
         {
             continue;
         }
