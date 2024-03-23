@@ -1,3 +1,22 @@
+#include "context_data.h"
+#include "ftplimits.h"
+#include "ftptool.h"
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+
 void STRU_handler(int argc, const char **argv)
 {
+    /**
+     * 由于常见的服务器和客户端都支持File结构，这个命令其实也没什么软用。
+     * RFC959规定<structure-code> ::= F | R | P
+     */
+    if (argc != 2)
+        return;
+    int fd = get_shared_context()->control_connection_fd;
+
+    char STRU_CMD[CMD_MAX_SIZE];
+    snprintf(STRU_CMD, sizeof(STRU_CMD), "STRU %s\r\n", argv[1]);
+    write(fd, STRU_CMD, strlen(STRU_CMD));
+    echo_response(fd);
 }
