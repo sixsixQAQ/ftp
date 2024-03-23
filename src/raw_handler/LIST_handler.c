@@ -10,7 +10,7 @@
 
 void LIST_handler(int argc, const char **argv)
 {
-    if (argc != 2)
+    if (argc != 1 && argc != 2)
         return;
 
     PASV_handler(0, NULL);
