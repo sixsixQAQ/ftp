@@ -7,7 +7,7 @@
 
 typedef struct cmd
 {
-	const char *std_name;
+	const char *raw_name;
 	const char *name;
 	const char *help;
 	void (*handler) (int argc, const char **argv);

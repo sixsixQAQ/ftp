@@ -1,11 +1,11 @@
+#include "cmd.h"
 #include <stdio.h>
 #include <string.h>
-#include "cmd.h"
 
 #define MAX_LINE 1024
 #define MAX_ARGC 50
 
-void execute(int argc,const char **argv)
+void execute(int argc, const char **argv)
 {
     const cmd *c = get_cmd_info(argv[0]);
     if (c == NULL)
@@ -59,4 +59,3 @@ int main(int argc, char **argv)
 
     return 0;
 }
-
