@@ -1,18 +1,48 @@
+#define _XOPEN_SOURCE 700
+
 #include "context_data.h"
+#include "ftplimits.h"
+#include "ftptool.h"
+#include "protocol_config.h"
 #include <arpa/inet.h>
 #include <err.h>
 #include <fcntl.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include "ftptool.h"
-#include "protocol_config.h"
+#include <netdb.h>
 
 static void usage_open()
 {
     printf("Usage open <host> [port]\n");
+}
+
+static int get_ipv4_by_domain(const char *domain, char *buf, size_t size)
+{
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;
+
+    struct addrinfo *ai_list;
+    int ret = getaddrinfo(domain, NULL, &hints, &ai_list);
+
+    if (ret != 0)
+    {
+        snprintf(buf, size, gai_strerror(ret));
+        return -1;
+    }
+
+    struct sockaddr_in *addr = (struct sockaddr_in *)ai_list->ai_addr;
+
+    if (inet_ntop(AF_INET, &addr->sin_addr, buf, size) == NULL)
+    {
+        perror("inet_ntop()");
+        return -1;
+    }
+    return 0;
 }
 
 /**
@@ -21,14 +51,14 @@ static void usage_open()
 void open_handler(int argc, char **argv)
 {
     uint16_t port;
-    char ip[sizeof("XXX.XXX.XXX.XXX")];
-
+    char domain[DOMAIN_MAX_SIZE];
+    char ip[DOMAIN_MAX_SIZE];
     if (argc != 2 && argc != 3)
         return usage_open();
 
     if (argc == 2)
     {
-        strncpy(ip, argv[1], sizeof(ip));
+        strncpy(domain, argv[1], sizeof(domain));
         port = default_server_control_connection_port;
     }
     else if (argc == 3)
@@ -40,6 +70,8 @@ void open_handler(int argc, char **argv)
             return usage_open();
         }
     }
+
+    get_ipv4_by_domain(domain, ip, sizeof(ip));
 
     struct sockaddr_in server_addr;
     server_addr.sin_port = htons(port);
@@ -68,7 +100,7 @@ void open_handler(int argc, char **argv)
         echo_response(fd);
     }
     { // Send "USER xxxxxxxx\r\n"
-        printf("Username(%s):", ip);
+        printf("Username(%s):", domain);
         char username[1024];
         fgets(username, sizeof(username), stdin);
         if (username[strlen(username) - 1] == '\n')

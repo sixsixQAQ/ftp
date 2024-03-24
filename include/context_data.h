@@ -3,9 +3,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "ftplimits.h"
 
-#define IPV4_MAX_SIZE sizeof("XXX.XXX.XXX.XXX")
-#define RESPONSE_MAX_SIZE 8192
 typedef struct context_data
 {
 

@@ -3,4 +3,8 @@
 
 #define CMD_MAX_SIZE 8192
 #define RES_CODE_SIZE 4
+#define DOMAIN_MAX_SIZE 8192
+#define IPV4_MAX_SIZE sizeof("XXX.XXX.XXX.XXX")
+#define RESPONSE_MAX_SIZE 8192
+
 #endif
