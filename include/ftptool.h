@@ -1,1 +1,0 @@
-void echo_response(int sockfd);

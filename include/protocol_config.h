@@ -1,9 +1,0 @@
-#ifndef PROTOCOL_CONFIG_H
-#define PROROCOL_CONFIG_H
-
-extern int default_client_data_connection_port;
-extern int default_client_control_connection_port;
-extern int default_server_control_connection_port;
-extern int default_server_data_connection_port;
-
-#endif
