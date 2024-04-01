@@ -1,3 +1,5 @@
+#pragma once
+
 #include "Context.hpp"
 #include "ErrorUtil.hpp"
 #include <functional>

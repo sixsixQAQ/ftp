@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <memory>
 
 class Toggle
@@ -21,6 +22,7 @@ class ControlFd
   public:
     ControlFd(int fd);
     int getFd() const;
+    void close();
     operator int() const
     {
         return getFd();
@@ -34,6 +36,7 @@ class ControlFd
 class DataFd : private ControlFd
 {
   public:
+    using ControlFd::close;
     using ControlFd::ControlFd;
     using ControlFd::getFd;
     using ControlFd::operator int;
@@ -41,6 +44,14 @@ class DataFd : private ControlFd
 
 struct Context
 {
+    Context(std::istream &inStream, std::ostream &outStream)
+        : inStream(inStream), outStream(outStream), ctrlFd(-1), dataFd(-1)
+    {
+      PASV_Toggle.turnOn();
+    }
+    std::istream &inStream;
+    std::ostream &outStream;
+
     ControlFd ctrlFd;
     DataFd dataFd;
     Toggle PASV_Toggle;

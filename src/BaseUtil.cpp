@@ -1,9 +1,10 @@
 #define _XOPEN_SOURCE 700
 
 #include "BaseUtil.hpp"
-
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <numeric>
+#include <sstream>
 #include <string.h>
 #include <unistd.h>
 
@@ -67,10 +68,10 @@ FAILED:
     return -1;
 }
 
-int NetUtil::writen(int sockfd, const char *buf, size_t size)
+size_t NetUtil::writen(int sockfd, const char *buf, size_t size)
 {
-    int totalWrite = 0;
-    for (;;)
+    size_t totalWrite = 0;
+    for (; totalWrite < size;)
     {
         int nwrite = write(sockfd, buf + totalWrite, size - totalWrite);
         if (nwrite < 0)
@@ -81,6 +82,28 @@ int NetUtil::writen(int sockfd, const char *buf, size_t size)
         totalWrite += nwrite;
     }
     return totalWrite;
+}
+
+std::string NetUtil::readAll(int sockfd)
+{
+    std::stringstream stream;
+
+    char buf[4096];
+    for (;;)
+    {
+        int nRead = read(sockfd, buf, sizeof(buf));
+        if (nRead == 0)
+        {
+            break;
+        }
+        else if (nRead < 0)
+        {
+            setError(strerror(errno));
+            break;
+        }
+        stream.write(buf, nRead);
+    }
+    return stream.str();
 }
 
 std::string NetUtil::domainToIp(const std::string &domain)
@@ -113,15 +136,13 @@ std::string NetUtil::domainToIp(const std::string &domain)
 std::string FTPUtil::makeUpCmd(const std::vector<std::string> &args)
 {
     std::string command;
-    for (auto arg : args)
-    {
-        command = command + ' ' + arg;
-    }
+    command = std::accumulate(args.begin(), args.end(), std::string(),
+                              [](const std::string &a, const std::string &b) { return a.empty() ? b : a + ' ' + b; });
     command += "\r\n";
     return command;
 }
 
-bool FTPUtil::sendCmd(ControlFd sockfd, const std::vector<std::string> &args)
+bool FTPUtil::sendCmd(ControlFd sockfd, const ArgList &args)
 {
     std::string command = makeUpCmd(args);
 
@@ -129,4 +150,9 @@ bool FTPUtil::sendCmd(ControlFd sockfd, const std::vector<std::string> &args)
     if (nwrite == command.length())
         return true;
     return false;
+}
+
+bool FTPUtil::sendCmd(ControlFd sockfd, std::function<ArgList(std::istream &)> parser, std::istream &inStream)
+{
+    return sendCmd(sockfd, parser(inStream));
 }

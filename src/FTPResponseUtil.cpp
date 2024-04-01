@@ -291,7 +291,7 @@ void FTPResponseUtil::PASVResponse(ControlFd connFd, std::string &ip, uint16_t &
         }
     }
 
-    static std::regex pattern(R"I_LOVE_YOU(\((\d\d\d,\d\d\d,\d\d\d,\d\d\d),(\d\d\d),(\d\d\d)\))I_LOVE_YOU");
+    static std::regex pattern(R"I_LOVE_YOU(\((.*?,.*?,.*?,.*?),(.*?),(.*?)\))I_LOVE_YOU");
 
     std::string rawIp;
     std::string headByteStr;
@@ -308,7 +308,7 @@ void FTPResponseUtil::PASVResponse(ControlFd connFd, std::string &ip, uint16_t &
         }
         if ((*it)[3].matched)
         {
-            headByteStr = it->str(3);
+            tailByteStr = it->str(3);
         }
     }
     uint8_t headByte = (uint8_t)std::stoi(headByteStr);

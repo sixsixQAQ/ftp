@@ -6,6 +6,8 @@
 #include "FTPResponseUtil.hpp"
 #include "cmd.hpp"
 #include <iostream>
+#include <sstream>
+#include <thread>
 
 struct Command
 {
@@ -16,15 +18,26 @@ struct Command
 
 ControlFd openImpl(const std::string &domain, uint16_t port)
 {
-    int connFd = NetUtil::connectToServer(domain, port);
+    ControlFd connFd = NetUtil::connectToServer(domain, port);
     if (connFd == -1)
     {
         return -1;
     }
-
     FTPResponseUtil::echoResponse(connFd);
 
     return connFd;
+}
+
+void _userImpl_(const ControlFd &fd, const std::string &userName)
+{
+    FTPUtil::sendCmd(fd, {"USER", userName});
+    FTPResponseUtil::echoResponse(fd);
+}
+
+void _passwordImpl_(const ControlFd &fd, const std::string &passwd)
+{
+    FTPUtil::sendCmd(fd, {"PASS", passwd});
+    FTPResponseUtil::echoResponse(fd);
 }
 
 void passiveImpl(Toggle &mode)
@@ -56,19 +69,31 @@ void mkdirImpl(const ControlFd &fd, const std::string &dirPath)
     FTPResponseUtil::echoResponse(fd);
 }
 
-void lsImpl(const ControlFd &fd, const Toggle &isPassive, const std::string &path)
+std::string lsImpl(const ControlFd &fd, const Toggle &isPassive, const std::string &path)
 {
     if (isPassive)
     {
         FTPUtil::sendCmd(fd, {"PASV"});
-        
+
         std::string ip;
         uint16_t port;
         FTPResponseUtil::PASVResponse(fd, ip, port);
 
-        FTPUtil::sendCmd(fd, {"LIST", path});
+        DataFd dataFd = NetUtil::connectToServer(ip, port);
 
+        std::stringstream retStream;
+
+        FTPUtil::sendCmd(fd, {"LIST", path});
+        FTPResponseUtil::echoResponse(fd, retStream);
+
+        retStream << NetUtil::readAll(dataFd);
+        dataFd.close();
+
+        FTPResponseUtil::echoResponse(fd, retStream);
+
+        return retStream.str();
     }
+    return "";
 }
 
 void quitImpl(int connFd)
