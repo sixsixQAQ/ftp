@@ -69,27 +69,32 @@ void mkdirImpl(const ControlFd &fd, const std::string &dirPath)
     FTPResponseUtil::echoResponse(fd);
 }
 
+static void withPassiveMode(const ControlFd &fd, std::function<void(DataFd dataFd)> callback)
+{
+    FTPUtil::sendCmd(fd, {"PASV"});
+    std::string ip;
+    uint16_t port;
+    FTPResponseUtil::PASVResponse(fd, ip, port);
+
+    DataFd dataFd = NetUtil::connectToServer(ip, port);
+
+    callback(dataFd);
+
+    dataFd.close();
+}
+
 std::string lsImpl(const ControlFd &fd, const Toggle &isPassive, const std::string &path)
 {
     if (isPassive)
     {
-        FTPUtil::sendCmd(fd, {"PASV"});
-
-        std::string ip;
-        uint16_t port;
-        FTPResponseUtil::PASVResponse(fd, ip, port);
-
-        DataFd dataFd = NetUtil::connectToServer(ip, port);
-
         std::stringstream retStream;
 
-        FTPUtil::sendCmd(fd, {"LIST", path});
-        FTPResponseUtil::echoResponse(fd, retStream);
+        withPassiveMode(fd, [&](DataFd dataFd) {
+            FTPUtil::sendCmd(fd, {"LIST", path});
 
-        retStream << NetUtil::readAll(dataFd);
-        dataFd.close();
-
-        FTPResponseUtil::echoResponse(fd, retStream);
+            FTPResponseUtil::echoResponse(fd, retStream);
+            retStream << NetUtil::readAll(dataFd);
+        });
 
         return retStream.str();
     }
@@ -103,40 +108,32 @@ void quitImpl(int connFd)
     exit(EXIT_SUCCESS);
 }
 
-// std::unordered_map<std:string>
+void renameImpl(const ControlFd &fd, const std::string &oldname, const std::string &newname)
+{
+    FTPUtil::sendCmd(fd, {"RNFR", oldname});
+    FTPResponseUtil::getResponse(fd);
+    FTPUtil::sendCmd(fd, {"RNTO", newname});
+    FTPResponseUtil::echoResponse(fd);
+}
 
-// {"open", "open", "open <ip> [port]", open_handler},
-// {"help", "help", "help [command]", help_handler},
-// {"USER", "USER", "USER <SP> <username> <CRLF>", USER_handler},
-// {"PASS", "PASS", "PASS <SP> <password> <CRLF>", PASS_handler},
-// {"ACCT", "ACCT", "ACCT <SP> <account-information> <CRLF>", ACCT_handler},
-// {"CWD", "CWD", "CWD <SP> <pathname> <CRLF>", CWD_handler},
-// {"CDUP", "CDUP", "CDUP <CRLF>", CDUP_handler},
-// {"SMNT", "SMNT", "SMNT <SP> <pathname> <CRLF>", SMNT_handler},
-// {"QUIT", "QUIT", "QUIT <CRLF>", QUIT_handler},
-// {"REIN", "REIN", "REIN <CRLF>", REIN_handler},
-// {"PORT", "PORT", "PORT <SP> <host-port> <CRLF>", PORT_handler},
-// {"PASV", "PASV", "PASV <CRLF>", PASV_handler},
-// {"TYPE", "TYPE", "TYPE <SP> <type-code> <CRLF>", TYPE_handler},
-// {"STRU", "STRU", "STRU <SP> <structure-code> <CRLF>", STRU_handler},
-// {"MODE", "MODE", "MODE <SP> <mode-code> <CRLF>", MODE_handler},
-// {"RETR", "RETR", "RETR <SP> <pathname> <CRLF>", RETR_handler},
-// {"STOR", "STOR", "STOR <SP> <pathname> <CRLF>", STOR_handler},
-// {"STOU", "STOU", "STOU <CRLF>", STOU_handler},
-// {"APPE", "APPE", "APPE <SP> <pathname> <CRLF>", APPE_handler},
-// {"ALLO", "ALLO", "ALLO <SP> <decimal-integer> [<SP> R <SP> <decimal-integer>] <CRLF>", ALLO_handler},
-// {"REST", "REST", "REST <SP> <marker> <CRLF>", REST_handler},
-// {"RNFR", "RNFR", "RNFR <SP> <pathname> <CRLF>", RNFR_handler},
-// {"RNTO", "RNTO", "RNTO <SP> <pathname> <CRLF>", RNTO_handler},
-// {"ABOR", "ABOR", "ABOR <CRLF>", ABOR_handler},
-// {"DELE", "DELE", "DELE <SP> <pathname> <CRLF>", DELE_handler},
-// {"RMD", "RMD", "RMD <SP> <pathname> <CRLF>", RMD_handler},
-// {"MKD", "MKD", "MKD <SP> <pathname> <CRLF>", MKD_handler},
-// {"PWD", "PWD", "PWD <CRLF>", PWD_handler},
-// {"LIST", "LIST", "LIST [<SP> <pathname>] <CRLF>", LIST_handler},
-// {"NLST", "NLST", "NLST [<SP> <pathname>] <CRLF>", NLST_handler},
-// {"SITE", "SITE", "SITE <SP> <string> <CRLF>", SITE_handler},
-// {"SYST", "SYST", "SYST <CRLF>", SYST_handler},
-// {"STAT", "STAT", "STAT [<SP> <pathname>] <CRLF>", STAT_handler},
-// {"HELP", "HELP", "HELP [<SP> <string>] <CRLF>", HELP_handler},
-// {"NOOP", "NOOP", "NOOP <CRLF>", NOOP_handler},
+void putImpl(const ControlFd &fd, const std::string &localPath, const std::string &remotePath)
+{
+    withPassiveMode(fd, [&](DataFd dataFd) {
+        FTPUtil::sendCmd(fd, {"STOR", remotePath});
+        FTPResponseUtil::echoResponse(fd);
+
+        NetUtil::syncLocalToRemote(dataFd, localPath);
+    });
+    FTPResponseUtil::echoResponse(fd);
+}
+
+void getImpl(const ControlFd &fd, const std::string &remotePath, const std::string &localPath)
+{
+    withPassiveMode(fd, [&](DataFd dataFd) {
+        FTPUtil::sendCmd(fd, {"RETR", remotePath});
+        FTPResponseUtil::echoResponse(fd);
+
+        NetUtil::syncRemoteToLocal(dataFd, localPath);
+    });
+    FTPResponseUtil::echoResponse(fd);
+}

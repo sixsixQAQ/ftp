@@ -2,6 +2,7 @@
 
 #include "BaseUtil.hpp"
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <netdb.h>
 #include <numeric>
 #include <sstream>
@@ -84,14 +85,14 @@ size_t NetUtil::writen(int sockfd, const char *buf, size_t size)
     return totalWrite;
 }
 
-std::string NetUtil::readAll(int sockfd)
+std::string NetUtil::readAll(int fd)
 {
     std::stringstream stream;
 
     char buf[4096];
     for (;;)
     {
-        int nRead = read(sockfd, buf, sizeof(buf));
+        int nRead = read(fd, buf, sizeof(buf));
         if (nRead == 0)
         {
             break;
@@ -155,4 +156,58 @@ bool FTPUtil::sendCmd(ControlFd sockfd, const ArgList &args)
 bool FTPUtil::sendCmd(ControlFd sockfd, std::function<ArgList(std::istream &)> parser, std::istream &inStream)
 {
     return sendCmd(sockfd, parser(inStream));
+}
+
+void NetUtil::syncFile(int inFd, int outFd)
+{
+    if (inFd < 0 || outFd < 0)
+        return;
+    char buf[4096];
+    for (;;)
+    {
+        int nRead = read(inFd, buf, sizeof(buf));
+        if (nRead < 0)
+        {
+            setError(strerror(errno));
+            return;
+        }
+        else if (nRead == 0)
+        {
+            return;
+        }
+
+        int totalWrite = 0;
+        for (; totalWrite < nRead;)
+        {
+            int nWrite = write(outFd, buf + totalWrite, nRead - totalWrite);
+            if (nWrite < 0)
+            {
+                setError(strerror(errno));
+                return;
+            }
+            totalWrite += nWrite;
+        }
+    }
+}
+void NetUtil::syncLocalToRemote(int sockfd, const std::string &localPath)
+{
+    int localFd = open(localPath.c_str(), O_RDONLY);
+    if (localFd == -1)
+    {
+        setError(strerror(errno));
+        return;
+    }
+    syncFile(localFd, sockfd);
+    close(localFd);
+}
+void NetUtil::syncRemoteToLocal(int sockfd, const std::string &localPath)
+{
+    int localFd = open(localPath.c_str(), O_WRONLY | O_CREAT, 0644);
+    if (localFd == -1)
+    {
+        setError(strerror(errno));
+        return;
+    }
+    syncFile(sockfd, localFd);
+    close(localFd);
 }

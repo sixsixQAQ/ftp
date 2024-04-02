@@ -18,7 +18,12 @@ struct NetUtil : public ErrorUtil
     static int waitForConnect(uint16_t port, struct sockaddr *peerAddr = nullptr, socklen_t *peerAddrLen = nullptr);
     static size_t writen(int sockfd, const char *buf, size_t size);
     static std::string readAll(int sockfd);
+    static void syncLocalToRemote(int sockfd, const std::string &localPath);
+    static void syncRemoteToLocal(int sockfd, const std::string &localPath);
     static std::string domainToIp(const std::string &domain);
+
+  private:
+    static void syncFile(int inFd, int outFd);
 };
 
 struct FTPUtil

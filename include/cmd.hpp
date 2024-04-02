@@ -15,5 +15,7 @@ void deleteImpl(const ControlFd &fd, const std::string &filePath);
 void rmdirImpl(const ControlFd &fd, const std::string &dirPath);
 void mkdirImpl(const ControlFd &fd, const std::string &dirPath);
 std::string lsImpl(const ControlFd &fd, const Toggle &isPassive, const std::string &path = std::string());
-
+void renameImpl(const ControlFd &fd, const std::string &oldname, const std::string &newname);
+void putImpl(const ControlFd &fd, const std::string &localPath, const std::string &remotePath);
+void getImpl(const ControlFd &fd, const std::string &remotePath, const std::string &localPath);
 [[noreturn]] void quitImpl(int connFd);

@@ -7,15 +7,52 @@
 #include "ProtocolConfig.hpp"
 #include "cmd.hpp"
 
-static void execHandler(Context &context, const std::vector<std::string> args);
-static void openHandler(Context &context, const std::vector<std::string> &args);
-static void passiveHandler(Context &context, const std::vector<std::string> &args);
-static void pwdHandler(Context &context, const std::vector<std::string> &args);
-static void deleteHandler(Context &context, const std::vector<std::string> &args);
-static void rmdirHandler(Context &context, const std::vector<std::string> &args);
-static void mkdirHandler(Context &context, const std::vector<std::string> &args);
-static void lsHandler(Context &context, const std::vector<std::string> &args);
-static void quitHandler(Context &context, const std::vector<std::string> &args);
+class CmdHandler
+{
+  public:
+    using Handler = std::function<void(Context &, const std::vector<std::string>)>;
+
+    static void exec(Context &context, const std::vector<std::string> args);
+    static void openHandler(Context &context, const std::vector<std::string> &args);
+    static void passiveHandler(Context &context, const std::vector<std::string> &args);
+    static void pwdHandler(Context &context, const std::vector<std::string> &args);
+    static void deleteHandler(Context &context, const std::vector<std::string> &args);
+    static void rmdirHandler(Context &context, const std::vector<std::string> &args);
+    static void mkdirHandler(Context &context, const std::vector<std::string> &args);
+    static void lsHandler(Context &context, const std::vector<std::string> &args);
+    static void quitHandler(Context &context, const std::vector<std::string> &args);
+    static void renameHandler(Context &context, const std::vector<std::string> &args);
+    static void putHandler(Context &context, const std::vector<std::string> &args);
+    static void getHandler(Context &context, const std::vector<std::string> &args);
+    static void helpHandler(Context &context, const std::vector<std::string> &args);
+
+  private:
+    static bool checkConnection(Context &context);
+    struct CmdInfo
+    {
+        Handler handler;
+        std::string help;
+        std::string usage;
+    };
+    static const std::unordered_map<std::string, CmdInfo> &getHandlerMap()
+    {
+        static std::unordered_map<std::string, CmdInfo> cmdHandlerMap{
+            {"open", {openHandler, "usage: open host-name [port]", "open\t\tconnect to remote ftp server"}},
+            {"passive", {passiveHandler, "usage: passive", "passive\t\ttoggle use of passive transfer mode"}},
+            {"pwd", {pwdHandler, "usage: pwd", "pwd\t\tprint working directory on remote machine"}},
+            {"delete", {deleteHandler, "usage: delete remote-file", "delete\t\tdelete remote file"}},
+            {"rmdir", {rmdirHandler, "usage: rmdir directory-name", "rmdir\t\tremove directory on the remote machine"}},
+            {"mkdir", {mkdirHandler, "usage: mkdir directory-name", "mkdir\t\tmake directory on the remote machine"}},
+            {"ls", {lsHandler, "ls [remote-path]", "ls\t\tlist contents of remote path"}},
+            {"quit", {quitHandler, "usage: quit", "quit\t\tterminate ftp session and exit"}},
+            {"rename", {renameHandler, "usage: rename from-name to-name", "rename\t\trename file"}},
+            {"put", {putHandler, "usage: put local-file [remote-file]", "put\t\tsend one file"}},
+            {"get", {getHandler, "usage: get remote-file [local-file]", "get\t\treceive file"}},
+            {"help", {helpHandler, "usage: help [cmd name]", "help\t\tprint local help information"}},
+        };
+        return cmdHandlerMap;
+    }
+};
 
 static std::vector<std::string> split(const std::string &str)
 {
@@ -42,7 +79,7 @@ void CliHandler::exec()
     {
         m_cliContext.outStream << "ftp>";
         std::vector<std::string> args = parseOneLine(std::cin);
-        execHandler(m_cliContext, args);
+        CmdHandler::exec(m_cliContext, args);
     }
 }
 
@@ -53,21 +90,16 @@ std::vector<std::string> CliHandler::parseOneLine(std::istream &inStream)
     return split(cmdLine);
 }
 
-void execHandler(Context &context, const std::vector<std::string> args)
+void CmdHandler::exec(Context &context, const std::vector<std::string> args)
 {
     if (args.size() == 0)
         return;
 
-    using Handler = std::function<void(Context &, const std::vector<std::string>)>;
-    static std::unordered_map<std::string, Handler> cmdHandlerMap{
-        {"open", openHandler},   {"passive", passiveHandler}, {"pwd", pwdHandler}, {"delete", deleteHandler},
-        {"rmdir", rmdirHandler}, {"mkdir", mkdirHandler},     {"ls", lsHandler},   {"quit", quitHandler},
-    };
+    auto cmdPair = getHandlerMap().find(args[0]);
 
-    auto cmdPair = cmdHandlerMap.find(args[0]);
-    if (cmdPair != cmdHandlerMap.end())
+    if (cmdPair != getHandlerMap().end())
     {
-        cmdPair->second(context, args);
+        cmdPair->second.handler(context, args);
     }
     else
     {
@@ -75,7 +107,7 @@ void execHandler(Context &context, const std::vector<std::string> args)
     }
 }
 
-void openHandler(Context &context, const std::vector<std::string> &args)
+void CmdHandler::openHandler(Context &context, const std::vector<std::string> &args)
 {
     if (args.size() == 2)
     {
@@ -97,6 +129,15 @@ void openHandler(Context &context, const std::vector<std::string> &args)
         }
 
         context.ctrlFd = openImpl(args[1], std::stoul(args[2]));
+        if (context.ctrlFd == -1)
+        {
+            context.outStream << "Failed to connect.\n";
+            return;
+        }
+    }
+    else
+    {
+        goto USAGE;
     }
     {
         context.outStream << "Username:";
@@ -113,10 +154,10 @@ void openHandler(Context &context, const std::vector<std::string> &args)
     }
 
 USAGE:
-    context.outStream << "Usage: open <ip> [port]";
+    context.outStream << "Usage: open <ip> [port]\n";
 }
 
-void passiveHandler(Context &context, const std::vector<std::string> &args)
+void CmdHandler::passiveHandler(Context &context, const std::vector<std::string> &args)
 {
     if (args.size() != 1)
     {
@@ -124,10 +165,12 @@ void passiveHandler(Context &context, const std::vector<std::string> &args)
         return;
     }
     passiveImpl(context.PASV_Toggle);
-    context.outStream << "PASV:" << std::boolalpha << context.PASV_Toggle << "\n";
+    context.outStream << "Passive Mode: " << std::boolalpha << context.PASV_Toggle << "\n";
 }
-void pwdHandler(Context &context, const std::vector<std::string> &args)
+void CmdHandler::pwdHandler(Context &context, const std::vector<std::string> &args)
 {
+    if (!checkConnection(context))
+        return;
     if (args.size() != 1)
     {
         context.outStream << "Usage: pwd";
@@ -136,8 +179,10 @@ void pwdHandler(Context &context, const std::vector<std::string> &args)
 
     pwdImpl(context.ctrlFd);
 }
-void deleteHandler(Context &context, const std::vector<std::string> &args)
+void CmdHandler::deleteHandler(Context &context, const std::vector<std::string> &args)
 {
+    if (!checkConnection(context))
+        return;
     if (args.size() != 2)
     {
         context.outStream << "Usage: delete <filename>";
@@ -145,8 +190,10 @@ void deleteHandler(Context &context, const std::vector<std::string> &args)
     }
     deleteImpl(context.ctrlFd, args[1]);
 }
-void rmdirHandler(Context &context, const std::vector<std::string> &args)
+void CmdHandler::rmdirHandler(Context &context, const std::vector<std::string> &args)
 {
+    if (!checkConnection(context))
+        return;
     if (args.size() != 2)
     {
         context.outStream << "Usage: rmdir <dirname>";
@@ -154,8 +201,10 @@ void rmdirHandler(Context &context, const std::vector<std::string> &args)
     }
     rmdirImpl(context.ctrlFd, args[1]);
 }
-void mkdirHandler(Context &context, const std::vector<std::string> &args)
+void CmdHandler::mkdirHandler(Context &context, const std::vector<std::string> &args)
 {
+    if (!checkConnection(context))
+        return;
     if (args.size() != 2)
     {
         context.outStream << "Usage: mkdir <dirname>";
@@ -163,8 +212,20 @@ void mkdirHandler(Context &context, const std::vector<std::string> &args)
     }
     mkdirImpl(context.ctrlFd, args[1]);
 }
-void lsHandler(Context &context, const std::vector<std::string> &args)
+
+bool CmdHandler::checkConnection(Context &context)
 {
+    if (context.ctrlFd == -1)
+    {
+        context.outStream << "Not connected.\n";
+        return false;
+    }
+    return true;
+}
+void CmdHandler::lsHandler(Context &context, const std::vector<std::string> &args)
+{
+    if (!checkConnection(context))
+        return;
     if (args.size() == 1)
     {
         context.outStream << lsImpl(context.ctrlFd, context.PASV_Toggle);
@@ -178,11 +239,79 @@ void lsHandler(Context &context, const std::vector<std::string> &args)
         context.outStream << "Usage: ls [path]";
     }
 }
-void quitHandler(Context &context, const std::vector<std::string> &args)
+void CmdHandler::quitHandler(Context &context, const std::vector<std::string> &args)
 {
     if (args.size() != 1)
     {
         context.outStream << "Usage: quit";
     }
     quitImpl(context.ctrlFd);
+}
+
+void CmdHandler::renameHandler(Context &context, const std::vector<std::string> &args)
+{
+    if (!checkConnection(context))
+        return;
+    if (args.size() != 3)
+    {
+        context.outStream << "Usage: rename <old filename> <new filename>";
+        return;
+    }
+    renameImpl(context.ctrlFd, args[1], args[2]);
+}
+
+void CmdHandler::putHandler(Context &context, const std::vector<std::string> &args)
+{
+    if (!checkConnection(context))
+        return;
+    if (args.size() != 3)
+    {
+        context.outStream << "Usage: put <local file> <remote file>";
+        return;
+    }
+
+    putImpl(context.ctrlFd, args[1], args[2]);
+}
+
+void CmdHandler::getHandler(Context &context, const std::vector<std::string> &args)
+{
+    if (!checkConnection(context))
+        return;
+    if (args.size() != 3)
+    {
+        context.outStream << "Usage: get <remote file> <local file>";
+        return;
+    }
+    getImpl(context.ctrlFd, args[1], args[2]);
+}
+
+void CmdHandler::helpHandler(Context &context, const std::vector<std::string> &args)
+{
+    (void)(context);
+    (void)(args);
+
+    if (args.size() == 1)
+    {
+        int i = 1;
+        for (auto pair : getHandlerMap())
+        {
+            context.outStream << pair.first << "\t\t";
+            if ((i++ % 5) == 0)
+                context.outStream << "\n";
+        }
+    }
+    else if (args.size() == 2)
+    {
+        auto pair = getHandlerMap().find(args[1]);
+        if (pair == getHandlerMap().end())
+        {
+            context.outStream << "?Invalid help command"
+                              << "`" << args[1] << "`\n";
+        }
+        else
+        {
+            context.outStream << pair->second.help << "\n";
+        }
+    }
+    context.outStream << "\n";
 }
