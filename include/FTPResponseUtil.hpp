@@ -19,4 +19,5 @@ class FTPResponseUtil : public ErrorUtil
     static std::vector<std::string> getResponse(ControlFd connFd);
     static std::vector<std::string> echoResponse(ControlFd connFd, std::ostream &out = std::cout);
     static void PASVResponse(ControlFd connFd, std::string &ip, uint16_t &port);
+    static long sizeResponse(ControlFd connFd);
 };

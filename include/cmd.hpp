@@ -21,5 +21,5 @@ void putImpl(const ControlFd &fd, const std::string &localPath, const std::strin
 void getImpl(const ControlFd &fd, const std::string &remotePath, const std::string &localPath,
              std::function<void(size_t putSize)> callback = nullptr);
 void cdImpl(const ControlFd &fd, const std::string &path);
-std::string sizeImpl(const ControlFd &fd, const std::string &path);
+long sizeImpl(const ControlFd &fd, const std::string &path);
 [[noreturn]] void quitImpl(int connFd);
