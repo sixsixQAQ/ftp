@@ -18,12 +18,20 @@ struct NetUtil : public ErrorUtil
     static int waitForConnect(uint16_t port, struct sockaddr *peerAddr = nullptr, socklen_t *peerAddrLen = nullptr);
     static size_t writen(int sockfd, const char *buf, size_t size);
     static std::string readAll(int sockfd);
-    static void syncLocalToRemote(int sockfd, const std::string &localPath);
-    static void syncRemoteToLocal(int sockfd, const std::string &localPath);
+    static void syncLocalToRemote(int sockfd, const std::string &localPath,
+                                  std::function<void(size_t syncedSize)> callback = nullptr);
+    static void syncRemoteToLocal(int sockfd, const std::string &localPath,
+                                  std::function<void(size_t syncedSize)> callback = nullptr);
     static std::string domainToIp(const std::string &domain);
 
   private:
-    static void syncFile(int inFd, int outFd);
+    static void syncFile(int inFd, int outFd, std::function<void(size_t syncedSize)> callback = nullptr);
+};
+
+struct IOUtil : public ErrorUtil
+{
+    static long getFileSize(const std::string&filePath);
+    static long getFileSize(int fd);
 };
 
 struct FTPUtil

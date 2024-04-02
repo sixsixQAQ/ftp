@@ -158,8 +158,9 @@ bool FTPUtil::sendCmd(ControlFd sockfd, std::function<ArgList(std::istream &)> p
     return sendCmd(sockfd, parser(inStream));
 }
 
-void NetUtil::syncFile(int inFd, int outFd)
+void NetUtil::syncFile(int inFd, int outFd, std::function<void(size_t syncedSize)> callback)
 {
+    size_t syncedSize = 0;
     if (inFd < 0 || outFd < 0)
         return;
     char buf[4096];
@@ -186,10 +187,15 @@ void NetUtil::syncFile(int inFd, int outFd)
                 return;
             }
             totalWrite += nWrite;
+            syncedSize += nWrite;
+            if (callback)
+                callback(syncedSize);
         }
     }
 }
-void NetUtil::syncLocalToRemote(int sockfd, const std::string &localPath)
+
+void NetUtil::syncLocalToRemote(int sockfd, const std::string &localPath,
+                                std::function<void(size_t syncedSize)> callback)
 {
     int localFd = open(localPath.c_str(), O_RDONLY);
     if (localFd == -1)
@@ -197,10 +203,12 @@ void NetUtil::syncLocalToRemote(int sockfd, const std::string &localPath)
         setError(strerror(errno));
         return;
     }
-    syncFile(localFd, sockfd);
+    syncFile(localFd, sockfd, [&](size_t syncedSize) { callback(syncedSize); });
+
     close(localFd);
 }
-void NetUtil::syncRemoteToLocal(int sockfd, const std::string &localPath)
+void NetUtil::syncRemoteToLocal(int sockfd, const std::string &localPath,
+                                std::function<void(size_t syncedSize)> callback)
 {
     int localFd = open(localPath.c_str(), O_WRONLY | O_CREAT, 0644);
     if (localFd == -1)
@@ -208,6 +216,44 @@ void NetUtil::syncRemoteToLocal(int sockfd, const std::string &localPath)
         setError(strerror(errno));
         return;
     }
-    syncFile(sockfd, localFd);
+    syncFile(sockfd, localFd, [&](size_t syncedSize) { callback(syncedSize); });
     close(localFd);
+}
+
+long IOUtil::getFileSize(int fd)
+{
+
+    long currPos;
+    long endPos;
+
+    currPos = lseek(fd, 0, SEEK_CUR);
+
+    if (currPos == -1)
+        goto FAILED;
+
+    endPos = lseek(fd, 0, SEEK_END);
+
+    if (endPos == -1)
+        goto FAILED;
+
+    if (lseek(fd, 0, currPos) == -1)
+        goto FAILED;
+    return endPos;
+
+FAILED:
+    setError(strerror(errno));
+    return -1;
+}
+
+long IOUtil::getFileSize(const std::string &filePath)
+{
+    int fd = open(filePath.c_str(), O_RDONLY);
+    if (fd == -1)
+    {
+        setError(strerror(errno));
+        return -1;
+    }
+    long size = getFileSize(fd);
+    close(fd);
+    return size;
 }

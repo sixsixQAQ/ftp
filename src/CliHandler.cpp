@@ -1,11 +1,12 @@
 #include "CliHandler.hpp"
 
-#include <functional>
-#include <sstream>
-#include <vector>
-
+#include "BaseUtil.hpp"
 #include "ProtocolConfig.hpp"
 #include "cmd.hpp"
+#include <functional>
+#include <sstream>
+#include <unistd.h>
+#include <vector>
 
 class CmdHandler
 {
@@ -26,6 +27,7 @@ class CmdHandler
     static void getHandler(Context &context, const std::vector<std::string> &args);
     static void helpHandler(Context &context, const std::vector<std::string> &args);
     static void cdHandler(Context &context, const std::vector<std::string> &args);
+    static void sizeHandler(Context &context, const std::vector<std::string> &args);
 
   private:
     static bool checkConnection(Context &context);
@@ -52,6 +54,8 @@ class CmdHandler
             {"get", {getHandler, "usage: get remote-file [local-file]", "get\t\treceive file"}},
             {"help", {helpHandler, "usage: help [cmd name]", "help\t\tprint local help information"}},
             {"cd", {cdHandler, "usage: cd remote-directory", "cd\t\tchange remote working directory"}},
+            {"size", {sizeHandler, "usage: size remote-file", "size\t\tshow size of remote file"}},
+
         };
         return cmdHandlerMap;
     }
@@ -280,7 +284,12 @@ void CmdHandler::putHandler(Context &context, const std::vector<std::string> &ar
         return;
     }
 
-    putImpl(context.ctrlFd, args[1], args[2]);
+    const long wholeSize = IOUtil::getFileSize(args[1]);
+    putImpl(context.ctrlFd, args[1], args[2], [&](size_t syncedSize) {
+        auto str = "\rwhole Size:" + std::to_string(wholeSize / 1024.0 / 1024.0) +
+                   "MB,transfered:" + std::to_string(syncedSize / 1024.0 / 1024.0) + "MB";
+        write(STDOUT_FILENO, str.c_str(), str.size());
+    });
 }
 
 void CmdHandler::getHandler(Context &context, const std::vector<std::string> &args)
@@ -338,4 +347,18 @@ void CmdHandler::cdHandler(Context &context, const std::vector<std::string> &arg
         return;
     }
     cdImpl(context.ctrlFd, args[1]);
+}
+
+void CmdHandler::sizeHandler(Context &context, const std::vector<std::string> &args)
+{
+    if (!checkConnection(context))
+    {
+        return;
+    }
+    if (args.size() != 2)
+    {
+        usage(context, args[0]);
+        return;
+    }
+    context.outStream << sizeImpl(context.ctrlFd, args[1]);
 }

@@ -116,30 +116,41 @@ void renameImpl(const ControlFd &fd, const std::string &oldname, const std::stri
     FTPResponseUtil::echoResponse(fd);
 }
 
-void putImpl(const ControlFd &fd, const std::string &localPath, const std::string &remotePath)
+void putImpl(const ControlFd &fd, const std::string &localPath, const std::string &remotePath,
+             std::function<void(size_t putSize)> callback)
 {
     withPassiveMode(fd, [&](DataFd dataFd) {
         FTPUtil::sendCmd(fd, {"STOR", remotePath});
         FTPResponseUtil::echoResponse(fd);
 
-        NetUtil::syncLocalToRemote(dataFd, localPath);
+        NetUtil::syncLocalToRemote(dataFd, localPath, callback);
+        std::cout << "\n";
     });
     FTPResponseUtil::echoResponse(fd);
 }
 
-void getImpl(const ControlFd &fd, const std::string &remotePath, const std::string &localPath)
+void getImpl(const ControlFd &fd, const std::string &remotePath, const std::string &localPath,
+             std::function<void(size_t putSize)> callback)
 {
     withPassiveMode(fd, [&](DataFd dataFd) {
         FTPUtil::sendCmd(fd, {"RETR", remotePath});
         FTPResponseUtil::echoResponse(fd);
 
-        NetUtil::syncRemoteToLocal(dataFd, localPath);
+        NetUtil::syncRemoteToLocal(dataFd, localPath, callback);
     });
     FTPResponseUtil::echoResponse(fd);
 }
 
 void cdImpl(const ControlFd &fd, const std::string &path)
 {
-    FTPUtil::sendCmd(fd,{"CWD", path});
+    FTPUtil::sendCmd(fd, {"CWD", path});
     FTPResponseUtil::echoResponse(fd);
+}
+
+std::string sizeImpl(const ControlFd &fd, const std::string &path)
+{
+    FTPUtil::sendCmd(fd, {"SIZE", path});
+    std::stringstream stream;
+    FTPResponseUtil::echoResponse(fd, stream);
+    return stream.str();
 }
