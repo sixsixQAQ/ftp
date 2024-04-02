@@ -28,11 +28,12 @@ class CmdHandler
 
   private:
     static bool checkConnection(Context &context);
+    static void usage(Context &context, const std::string &name);
     struct CmdInfo
     {
         Handler handler;
-        std::string help;
         std::string usage;
+        std::string help;
     };
     static const std::unordered_map<std::string, CmdInfo> &getHandlerMap()
     {
@@ -154,14 +155,14 @@ void CmdHandler::openHandler(Context &context, const std::vector<std::string> &a
     }
 
 USAGE:
-    context.outStream << "Usage: open <ip> [port]\n";
+    usage(context, args[0]);
 }
 
 void CmdHandler::passiveHandler(Context &context, const std::vector<std::string> &args)
 {
     if (args.size() != 1)
     {
-        context.outStream << "Usage: passive";
+        usage(context, args[0]);
         return;
     }
     passiveImpl(context.PASV_Toggle);
@@ -173,7 +174,7 @@ void CmdHandler::pwdHandler(Context &context, const std::vector<std::string> &ar
         return;
     if (args.size() != 1)
     {
-        context.outStream << "Usage: pwd";
+        usage(context, args[0]);
         return;
     }
 
@@ -185,7 +186,7 @@ void CmdHandler::deleteHandler(Context &context, const std::vector<std::string> 
         return;
     if (args.size() != 2)
     {
-        context.outStream << "Usage: delete <filename>";
+        usage(context, args[0]);
         return;
     }
     deleteImpl(context.ctrlFd, args[1]);
@@ -196,7 +197,7 @@ void CmdHandler::rmdirHandler(Context &context, const std::vector<std::string> &
         return;
     if (args.size() != 2)
     {
-        context.outStream << "Usage: rmdir <dirname>";
+        usage(context, args[0]);
         return;
     }
     rmdirImpl(context.ctrlFd, args[1]);
@@ -207,10 +208,17 @@ void CmdHandler::mkdirHandler(Context &context, const std::vector<std::string> &
         return;
     if (args.size() != 2)
     {
-        context.outStream << "Usage: mkdir <dirname>";
+        usage(context, args[0]);
         return;
     }
     mkdirImpl(context.ctrlFd, args[1]);
+}
+void CmdHandler::usage(Context &context, const std::string &name)
+{
+    auto pair = getHandlerMap().find(name);
+    if (pair == getHandlerMap().end())
+        return;
+    context.outStream << pair->second.usage;
 }
 
 bool CmdHandler::checkConnection(Context &context)
@@ -236,14 +244,14 @@ void CmdHandler::lsHandler(Context &context, const std::vector<std::string> &arg
     }
     else
     {
-        context.outStream << "Usage: ls [path]";
+        usage(context, args[0]);
     }
 }
 void CmdHandler::quitHandler(Context &context, const std::vector<std::string> &args)
 {
     if (args.size() != 1)
     {
-        context.outStream << "Usage: quit";
+        usage(context, args[0]);
     }
     quitImpl(context.ctrlFd);
 }
@@ -254,7 +262,7 @@ void CmdHandler::renameHandler(Context &context, const std::vector<std::string> 
         return;
     if (args.size() != 3)
     {
-        context.outStream << "Usage: rename <old filename> <new filename>";
+        usage(context, args[0]);
         return;
     }
     renameImpl(context.ctrlFd, args[1], args[2]);
@@ -266,7 +274,7 @@ void CmdHandler::putHandler(Context &context, const std::vector<std::string> &ar
         return;
     if (args.size() != 3)
     {
-        context.outStream << "Usage: put <local file> <remote file>";
+        usage(context, args[0]);
         return;
     }
 
@@ -279,7 +287,7 @@ void CmdHandler::getHandler(Context &context, const std::vector<std::string> &ar
         return;
     if (args.size() != 3)
     {
-        context.outStream << "Usage: get <remote file> <local file>";
+        usage(context, args[0]);
         return;
     }
     getImpl(context.ctrlFd, args[1], args[2]);
@@ -306,11 +314,11 @@ void CmdHandler::helpHandler(Context &context, const std::vector<std::string> &a
         if (pair == getHandlerMap().end())
         {
             context.outStream << "?Invalid help command"
-                              << "`" << args[1] << "`\n";
+                              << "`" << args[1] << "`";
         }
         else
         {
-            context.outStream << pair->second.help << "\n";
+            context.outStream << pair->second.help;
         }
     }
     context.outStream << "\n";
