@@ -25,6 +25,7 @@ class CmdHandler
     static void putHandler(Context &context, const std::vector<std::string> &args);
     static void getHandler(Context &context, const std::vector<std::string> &args);
     static void helpHandler(Context &context, const std::vector<std::string> &args);
+    static void cdHandler(Context &context, const std::vector<std::string> &args);
 
   private:
     static bool checkConnection(Context &context);
@@ -50,6 +51,7 @@ class CmdHandler
             {"put", {putHandler, "usage: put local-file [remote-file]", "put\t\tsend one file"}},
             {"get", {getHandler, "usage: get remote-file [local-file]", "get\t\treceive file"}},
             {"help", {helpHandler, "usage: help [cmd name]", "help\t\tprint local help information"}},
+            {"cd", {cdHandler, "usage: cd remote-directory", "cd\t\tchange remote working directory"}},
         };
         return cmdHandlerMap;
     }
@@ -322,4 +324,18 @@ void CmdHandler::helpHandler(Context &context, const std::vector<std::string> &a
         }
     }
     context.outStream << "\n";
+}
+
+void CmdHandler::cdHandler(Context &context, const std::vector<std::string> &args)
+{
+    if (!checkConnection(context))
+    {
+        return;
+    }
+    if (args.size() != 2)
+    {
+        usage(context, args[0]);
+        return;
+    }
+    cdImpl(context.ctrlFd, args[1]);
 }

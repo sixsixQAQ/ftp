@@ -137,3 +137,9 @@ void getImpl(const ControlFd &fd, const std::string &remotePath, const std::stri
     });
     FTPResponseUtil::echoResponse(fd);
 }
+
+void cdImpl(const ControlFd &fd, const std::string &path)
+{
+    FTPUtil::sendCmd(fd,{"CWD", path});
+    FTPResponseUtil::echoResponse(fd);
+}
