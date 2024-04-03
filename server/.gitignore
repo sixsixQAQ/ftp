@@ -1,6 +1,5 @@
 .vscode
 build
-bin
-lib
 main
 main.exe
+bin
