@@ -52,7 +52,28 @@ void serveForClient (int connfd, struct sockaddr_in clienAddr)
 			}
 			else
 			{
+				std::string userCmd = "USER";
+				std::string passCmd = "PASS";
+				
+				std::stringstream stream;
+				stream.write (buf, nRead);
+                std::string request = stream.str();
+				std::cerr << request << "\n";
+				if (request.compare (0, userCmd.length(), userCmd) == 0)
+				{
+					std::string reply = "331 Password,please.\r\n";
+					IOUtil::writen (fd, reply.c_str(), reply.length());
+					std::cerr << reply;
+				}
+				else if (request.compare (0, passCmd.length(), passCmd) == 0)
+				{
+					std::string reply = "230 Login Ok.\r\n";
+					IOUtil::writen (fd, reply.c_str(), reply.length());
+					std::cerr << reply;
+				}
+				
 				IOUtil::writen (STDOUT_FILENO, buf, nRead);
+				
 			}
 		}
 		
