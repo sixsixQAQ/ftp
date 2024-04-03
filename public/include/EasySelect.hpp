@@ -11,7 +11,7 @@ class EasySelect : public ErrorUtil
     using Callback = std::function<void(int fd)>;
 
     EasySelect();
-
+    bool isRunning() const;
     void startSelect();
     void addFd(const std::pair<int, Callback> &);
     void removeFd(int fd);
