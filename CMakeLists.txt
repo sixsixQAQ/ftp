@@ -1,11 +1,6 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.20)
+project(FreeFTP)
 
-project(ftp)
-
-FILE(GLOB SRC "src/*.cpp")
-set(CMAKE_C_STANDARD 11)
-add_compile_options(-Wall -g)
-
-add_executable(main ${SRC})
-
-target_include_directories(main PRIVATE include)
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
+add_subdirectory(client)
+add_subdirectory(server)
