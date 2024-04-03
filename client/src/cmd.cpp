@@ -19,7 +19,7 @@ struct Command
 
 ControlFd openImpl(const std::string &domain, uint16_t port)
 {
-    ControlFd connFd = NetUtil::connectToServer(domain, port);
+    ControlFd connFd =  NetUtil::connectToServer(domain, port);
     if (connFd == -1)
     {
         return -1;
