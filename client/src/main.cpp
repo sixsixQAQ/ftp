@@ -1,8 +1,9 @@
 #include "CliHandler.hpp"
 
-int main()
+int
+main ()
 {
-    std::cout << "FreeFTP v1.0\n";
-    CliHandler cliHandler(std::cin, std::cout);
-    cliHandler.exec();
+	std::cout << "FreeFTP v1.0\n";
+	CliHandler cliHandler (std::cin, std::cout);
+	cliHandler.exec();
 }

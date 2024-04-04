@@ -2,6 +2,7 @@
 
 #include "Context.hpp"
 #include "ErrorUtil.hpp"
+
 #include <functional>
 #include <iostream>
 #include <string>
@@ -17,7 +18,9 @@ class FTPResponseUtil : public ErrorUtil {
 public:
 	// TODO: vector解析多余了一个空字符串。
 	static std::vector<std::string> getResponse (ControlFd connFd);
-	static std::vector<std::string> echoResponse (ControlFd connFd, std::ostream &out = std::cout);
+	static std::vector<std::string> echoResponse (
+		ControlFd connFd, std::ostream &out = std::cout
+	);
 	static void PASVResponse (ControlFd connFd, std::string &ip, uint16_t &port);
 	static long sizeResponse (ControlFd connFd);
 };

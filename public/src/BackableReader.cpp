@@ -1,7 +1,18 @@
 #include "BackableReader.hpp"
 
-int BackableReader::read(void *buf, size_t size) { return 0; }
+int
+BackableReader::read (void *buf, size_t size)
+{
+	return 0;
+}
 
-void BackableReader::rollBackData(void *buf, size_t size) {}
+void
+BackableReader::rollBackData (void *buf, size_t size)
+{
+}
 
-std::string BackableReader::getCached() { return std::string(); }
+std::string
+BackableReader::getCached()
+{
+	return std::string();
+}
