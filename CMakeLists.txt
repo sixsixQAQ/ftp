@@ -7,3 +7,5 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 add_subdirectory(public)
 add_subdirectory(client)
 add_subdirectory(server)
+
+add_subdirectory(public/test)
