@@ -7,11 +7,9 @@
 
 struct FTPUtil {
 	using ArgList = std::vector<std::string>;
-	static bool sendCmd (ControlFd sockfd, const ArgList &args);
+	static bool sendCmd (AbstractFd sockfd, const ArgList &args);
 	static bool sendCmd (
-		ControlFd sockfd,
-		std::function<ArgList (std::istream &)> parser,
-		std::istream &inStream
+		AbstractFd sockfd, std::function<ArgList (std::istream &)> parser, std::istream &inStream
 	);
 
 private:

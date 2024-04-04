@@ -24,7 +24,7 @@ testBackableReader ()
 	SUCCEED (reader.read (buf, sizeof (buf)) == (int)str.size());
 
 	assert (reader.getCached() == "");
-	reader.rollBackData (buf, str.size() - 2);
+	reader.unread (buf, str.size() - 2);
 	assert (reader.getCached() == "hello world");
 
 	close (readFd);
