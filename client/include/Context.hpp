@@ -28,7 +28,7 @@ struct Context {
 	std::istream &inStream;
 	std::ostream &outStream;
 
-	AbstractFd ctrlFd;
+	ControlFd ctrlFd;
 	DataFd dataFd;
 	Toggle PASV_Toggle;
 	Toggle PORT_Toggle;

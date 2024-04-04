@@ -1,6 +1,5 @@
 #pragma once
 
-#include "AbstractFd.hpp"
 #include "ErrorUtil.hpp"
 
 #include <functional>
@@ -14,15 +13,17 @@ struct NetUtil : public ErrorUtil {
 
 	static int connectToServer (const std::string &domain, uint16_t port);
 	static int waitForConnect (
-		uint16_t port, struct sockaddr *peerAddr = nullptr, socklen_t *peerAddrLen = nullptr
+		uint16_t port,
+		struct sockaddr *peerAddr = nullptr,
+		socklen_t *peerAddrLen	  = nullptr
 	);
 	static void syncLocalToRemote (
-		AbstractFd sockfd,
+		int sockfd,
 		const std::string &localPath,
 		std::function<void (size_t syncedSize)> callback = nullptr
 	);
 	static void syncRemoteToLocal (
-		AbstractFd sockfd,
+		int sockfd,
 		const std::string &localPath,
 		std::function<void (size_t syncedSize)> callback = nullptr
 	);
@@ -30,13 +31,13 @@ struct NetUtil : public ErrorUtil {
 
 private:
 	static void syncFile (
-		AbstractFd inFd, AbstractFd outFd, std::function<void (size_t syncedSize)> callback = nullptr
+		int inFd, int outFd, std::function<void (size_t syncedSize)> callback = nullptr
 	);
 };
 
 struct IOUtil : public ErrorUtil {
 	static long getFileSize (const std::string &filePath);
-	static long getFileSize (AbstractFd fd);
-	static size_t writen (AbstractFd sockfd, const char *buf, size_t size);
-	static std::string readAll (AbstractFd sockfd);
+	static long getFileSize (int fd);
+	static size_t writen (int sockfd, const char *buf, size_t size);
+	static std::string readAll (int sockfd);
 };

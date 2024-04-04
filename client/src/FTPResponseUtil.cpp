@@ -53,7 +53,9 @@ private:
 };
 
 void
-FTPResponseUtilImpl::transform (WaitingChar *pCurrState, CharEvent event, WaitingChar *pLastState)
+FTPResponseUtilImpl::transform (
+	WaitingChar *pCurrState, CharEvent event, WaitingChar *pLastState
+)
 {
 	static const StateTransform stateTransMap[] = {
 		{BEG_DIGIT_1, DIGIT, BEG_DIGIT_2},
@@ -148,7 +150,8 @@ FTPResponseUtilImpl::transform (WaitingChar *pCurrState, CharEvent event, Waitin
 		pLastState = &NULL_ABLE;
 
 	for (size_t i = 0; i < sizeof (stateTransMap) / sizeof (stateTransMap[0]); ++i) {
-		if (stateTransMap[i].currState == *pCurrState && stateTransMap[i].event == event) {
+		if (stateTransMap[i].currState == *pCurrState &&
+			stateTransMap[i].event == event) {
 			*pLastState = *pCurrState;
 			*pCurrState = stateTransMap[i].nextState;
 			return;
@@ -171,7 +174,8 @@ split (const std::string &text, const std::string &delimStr)
 			tokens.emplace_back (text.substr (nextLineBeg));
 			break;
 		} else {
-			tokens.emplace_back (text.substr (nextLineBeg, nextDelim + delimStr.length()));
+			tokens.emplace_back (text.substr (nextLineBeg, nextDelim + delimStr.length())
+			);
 			nextLineBeg = nextDelim + delimStr.length();
 		}
 	}
@@ -245,13 +249,13 @@ FTPResponseUtilImpl::eventFromChar (char ch)
 }
 
 std::vector<std::string>
-FTPResponseUtil::getResponse (AbstractFd connFd)
+FTPResponseUtil::getResponse (ControlFd connFd)
 {
 	return FTPResponseUtilImpl::getResponse (connFd);
 }
 
 std::vector<std::string>
-FTPResponseUtil::echoResponse (AbstractFd connFd, std::ostream &out)
+FTPResponseUtil::echoResponse (ControlFd connFd, std::ostream &out)
 {
 	auto response = FTPResponseUtil::getResponse (connFd);
 	for (auto line : response) {
@@ -264,7 +268,7 @@ FTPResponseUtil::echoResponse (AbstractFd connFd, std::ostream &out)
  * "227 Entering Passive Mode (139,199,176,107,143,179).\r\n"
  */
 void
-FTPResponseUtil::PASVResponse (AbstractFd connFd, std::string &ip, uint16_t &port)
+FTPResponseUtil::PASVResponse (ControlFd connFd, std::string &ip, uint16_t &port)
 {
 	std::string response;
 	{
@@ -275,12 +279,15 @@ FTPResponseUtil::PASVResponse (AbstractFd connFd, std::string &ip, uint16_t &por
 			response = responseVector[0];
 		}
 	}
-	static std::regex pattern (R"I_LOVE_YOU(\((.*?,.*?,.*?,.*?),(.*?),(.*?)\))I_LOVE_YOU");
+	static std::regex pattern (R"I_LOVE_YOU(\((.*?,.*?,.*?,.*?),(.*?),(.*?)\))I_LOVE_YOU"
+	);
 
 	std::string rawIp;
 	std::string headByteStr;
 	std::string tailByteStr;
-	for (std::sregex_iterator it (response.begin(), response.end(), pattern), end_it; it != end_it; ++it) {
+	for (std::sregex_iterator it (response.begin(), response.end(), pattern), end_it;
+		 it != end_it;
+		 ++it) {
 		if ((*it)[1].matched) {
 			rawIp = it->str (1);
 		}
@@ -311,7 +318,7 @@ FTPResponseUtil::PASVResponse (AbstractFd connFd, std::string &ip, uint16_t &por
 }
 
 long
-FTPResponseUtil::sizeResponse (AbstractFd connFd)
+FTPResponseUtil::sizeResponse (ControlFd connFd)
 {
 	constexpr int COULD_NOT_GET_FILE_SIZE = 550;
 	std::vector<std::string> result		  = getResponse (connFd);
