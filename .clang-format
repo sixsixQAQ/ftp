@@ -1,7 +1,7 @@
 ---
 BasedOnStyle: Microsoft
 Language: Cpp
-ColumnLimit: 110
+ColumnLimit: 120
 UseTab: Always
 
 # 括号换行
