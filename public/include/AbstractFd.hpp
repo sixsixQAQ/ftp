@@ -32,6 +32,12 @@ protected:
 class BackableFd : protected AbstractFd {
 public:
 	using AbstractFd::AbstractFd;
+	using AbstractFd::close;
+	using AbstractFd::isOpened;
+	using AbstractFd::read;
+	using AbstractFd::write;
+	using AbstractFd::operator int;
+	using AbstractFd::getFd;
 	void unread (void *buf, size_t size);
 
 private:
