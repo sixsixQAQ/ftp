@@ -1,0 +1,91 @@
+---
+BasedOnStyle: Microsoft
+Language: Cpp
+ColumnLimit: 90
+UseTab: Always
+
+# 括号换行
+BreakBeforeBraces: Custom #控制左大括号换行
+BraceWrapping:
+  AfterClass: false
+  AfterEnum: false
+  AfterExternBlock: false
+  AfterStruct: false
+  AfterUnion: false
+  AfterNamespace: false
+  AfterControlStatement: false # if, for, while, switch
+  BeforeWhile: false #do while不换行
+  BeforeElse: false # else不换行
+  BeforeCatch: false
+  SplitEmptyFunction: true # 空函数拆开
+  SplitEmptyRecord: true # 空类拆开
+  SplitEmptyNamespace: true #空namespace换行
+AlwaysBreakAfterReturnType: TopLevel # 返回类型单挂，类里面除外
+BreakConstructorInitializers: AfterColon # 初始化列表打散
+BreakInheritanceList: AfterComma # 继承打散
+
+# 补空格
+SpaceBeforeParens: Custom
+SpaceBeforeParensOptions:
+  AfterControlStatements: true
+  AfterFunctionDefinitionName: true
+  AfterFunctionDeclarationName: true
+  AfterOverloadedOperator: true # 后++补空格
+  BeforeNonEmptyParentheses: true # 非空调用补空格
+
+SpaceInEmptyBlock: true # 括号里补空格（换行则无效）
+SpaceBeforeCpp11BracedList: true # 值列表前留个空格
+SpaceAroundPointerQualifiers: Both # 指针*跟随
+
+EmptyLineAfterAccessModifier: Leave # 权限控制符后新行不管
+EmptyLineBeforeAccessModifier: Leave # 之前新行不管
+
+IndentExternBlock: NoIndent # extern "C" 中用空格缩进
+IndentPPDirectives: BeforeHash # 宏缩进样式
+IndentAccessModifiers: false # 权限控制符前不留空
+AccessModifierOffset: -4 # 权限控制符贴最左边
+
+BinPackArguments: false # 实参全一行，或者全不一行
+BinPackParameters: false # 形参全一行，或者全不一行
+
+AllowShortEnumsOnASingleLine: true # 允许单行枚举
+AllowShortBlocksOnASingleLine: false #不许单行带括号
+AllowAllParametersOfDeclarationOnNextLine: true # 允许参数都在下一行
+AllowAllArgumentsOnNextLine: true # 允许实参都在下一行
+PackConstructorInitializers: NextLine # 构造函数初始化列表本行放不下下一行，并且打散
+
+# 对齐
+AlignConsecutiveAssignments: Consecutive # 对齐连续赋值
+AlignConsecutiveMacros: AcrossEmptyLines # 对齐连续宏
+AlignTrailingComments: true # 对齐尾随注释
+AlignEscapedNewlines: Right # 宏换行符靠右对齐
+
+AlwaysBreakTemplateDeclarations: Yes # 模板换行
+
+IncludeBlocks: Regroup # 引号和尖括号头文件分组
+FixNamespaceComments: true # 不要加命名空间注释
+SeparateDefinitionBlocks: Always # 定义块直接加空行
+
+MaxEmptyLinesToKeep: 2 # 最大空行数目
+
+AlignAfterOpenBracket: BlockIndent # 前后小括号都换行
+# 罚分:
+#1. 调用类
+#PenaltyExcessCharacter: 10 #起因，超一个字符罚分
+#PenaltyBreakBeforeFirstCallParameter: 0 # 鼓励太长时 第一个开括号就打断，不罚分。
+#PenaltyBreakOpenParenthesis: 1 # 1. 更优先打破第一个括号 2. 长度不许超
+
+#2. 赋值，<<
+## 1.优先打断括号，不优先打断赋值。2. 允许长度超出,值越大，允许超数越多
+#PenaltyBreakAssignment: 100 
+#PenaltyBreakFirstLessLess: 100
+
+#3. 注释、字符串
+#PenaltyBreakComment: 99999 # 坚决不要打断注释，狠狠地罚
+#PenaltyBreakString: 99999 # 坚决不要打断字符串
+#PenaltyIndentedWhitespace: 0 # 空白不罚分，保持良好缩进
+
+#4.声明类; 允许超数，值越大允许超数越多
+#PenaltyBreakTemplateDeclaration: 100
+#PenaltyReturnTypeOnItsOwnLine: 100 #(已经启用了返回值单挂,这个不用)
+
