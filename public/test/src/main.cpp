@@ -1,7 +1,14 @@
-#include <cassert>
+#include "BackableReader.hpp"
+#include "testBackableReader.hpp"
+
 #include <iostream>
 
-int main(void)
+int
+main (void)
 {
-    std::cout << "testPublic\n";
+	std::cout << "test Start\n";
+
+	testBackableReader();
+
+	std::cout << "All tests passed.\n";
 }

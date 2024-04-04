@@ -1,18 +1,78 @@
 #include "BackableReader.hpp"
 
+#include <cassert>
+#include <deque>
+#include <unistd.h>
+
+class BackablaReader::Impl {
+
+public:
+	Impl (int fd) : m_fd (fd)
+	{
+	}
+
+	int read (void *buf, size_t size);
+	void rollBackData (void *buf, size_t size);
+	std::string getCached ();
+
+private:
+	int m_fd;
+	std::string m_cache;
+};
+
 int
-BackableReader::read (void *buf, size_t size)
+BackablaReader::Impl::read (void *buf, size_t size)
 {
-	return 0;
+
+	if (m_cache.empty()) {
+		int nRead = ::read (m_fd, buf, size);
+		return nRead;
+	} else {
+		m_cache.copy (static_cast<char *> (buf), size);
+		if (size > m_cache.size()) {
+			return m_cache.size();
+		} else {
+			m_cache = m_cache.substr (size);
+			return size;
+		}
+	}
 }
 
 void
-BackableReader::rollBackData (void *buf, size_t size)
+BackablaReader::Impl::rollBackData (void *buf, size_t size)
 {
+	std::string backed (static_cast<char *> (buf), size);
+	m_cache = backed + m_cache;
 }
 
 std::string
-BackableReader::getCached()
+BackablaReader::Impl::getCached()
 {
-	return std::string();
+	return m_cache;
+}
+
+BackablaReader::BackablaReader (int fd) : m_pImpl (std::make_shared<Impl> (fd))
+{
+	assert (m_pImpl);
+}
+
+int
+BackablaReader::read (void *buf, size_t size)
+{
+	assert (m_pImpl);
+	return m_pImpl->read (buf, size);
+}
+
+void
+BackablaReader::rollBackData (void *buf, size_t size)
+{
+	assert (m_pImpl);
+	return m_pImpl->rollBackData (buf, size);
+}
+
+std::string
+BackablaReader::getCached()
+{
+	assert (m_pImpl);
+	return m_pImpl->getCached();
 }

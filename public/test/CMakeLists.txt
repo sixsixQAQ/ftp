@@ -10,10 +10,10 @@ set(CMAKE_C_STANDARD 11)
 
 add_compile_options(-Wall -g)
 
-add_library(${PROJECT_NAME} STATIC ${SRC})
+add_executable(${PROJECT_NAME} ${SRC})
 
 target_include_directories(${PROJECT_NAME} PRIVATE
-    include
+    ./include
     ${CMAKE_SOURCE_DIR}/public/include
 )
 

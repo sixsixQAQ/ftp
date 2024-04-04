@@ -1,6 +1,7 @@
 #pragma once
 #include "Context.hpp"
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -23,9 +24,7 @@ rmdirImpl (const ControlFd &fd, const std::string &dirPath);
 void
 mkdirImpl (const ControlFd &fd, const std::string &dirPath);
 std::string
-lsImpl (
-	const ControlFd &fd, const Toggle &isPassive, const std::string &path = std::string()
-);
+lsImpl (const ControlFd &fd, const Toggle &isPassive, const std::string &path = std::string());
 void
 renameImpl (const ControlFd &fd, const std::string &oldname, const std::string &newname);
 void

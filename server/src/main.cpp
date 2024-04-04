@@ -30,42 +30,39 @@ serveForClient (int connfd, struct sockaddr_in clienAddr)
 	IOUtil::writen (connfd, acceptMessage.c_str(), acceptMessage.length());
 
 	stopStartMutex.lock();
-	selector.addFd (
-		{connfd,
-		 [] (int fd) {
-			 char buf[4096];
-			 while (true) {
-				 int nRead = read (fd, buf, sizeof (buf));
-				 if (nRead == 0) {
-					 close (fd);
-					 selector.removeFd (fd);
-				 } else if (nRead < 0) {
-					 close (fd);
-					 selector.removeFd (fd);
-					 perror ("read()");
-				 } else {
-					 std::string userCmd = "USER";
-					 std::string passCmd = "PASS";
+	selector.addFd ({connfd, [] (int fd) {
+						 char buf[4096];
+						 while (true) {
+							 int nRead = read (fd, buf, sizeof (buf));
+							 if (nRead == 0) {
+								 close (fd);
+								 selector.removeFd (fd);
+							 } else if (nRead < 0) {
+								 close (fd);
+								 selector.removeFd (fd);
+								 perror ("read()");
+							 } else {
+								 std::string userCmd = "USER";
+								 std::string passCmd = "PASS";
 
-					 std::stringstream stream;
-					 stream.write (buf, nRead);
-					 std::string request = stream.str();
-					 std::cerr << request << "\n";
-					 if (request.compare (0, userCmd.length(), userCmd) == 0) {
-						 std::string reply = "331 Password,please.\r\n";
-						 IOUtil::writen (fd, reply.c_str(), reply.length());
-						 std::cerr << reply;
-					 } else if (request.compare (0, passCmd.length(), passCmd) == 0) {
-						 std::string reply = "230 Login Ok.\r\n";
-						 IOUtil::writen (fd, reply.c_str(), reply.length());
-						 std::cerr << reply;
-					 }
+								 std::stringstream stream;
+								 stream.write (buf, nRead);
+								 std::string request = stream.str();
+								 std::cerr << request << "\n";
+								 if (request.compare (0, userCmd.length(), userCmd) == 0) {
+									 std::string reply = "331 Password,please.\r\n";
+									 IOUtil::writen (fd, reply.c_str(), reply.length());
+									 std::cerr << reply;
+								 } else if (request.compare (0, passCmd.length(), passCmd) == 0) {
+									 std::string reply = "230 Login Ok.\r\n";
+									 IOUtil::writen (fd, reply.c_str(), reply.length());
+									 std::cerr << reply;
+								 }
 
-					 IOUtil::writen (STDOUT_FILENO, buf, nRead);
-				 }
-			 }
-		 }}
-	);
+								 IOUtil::writen (STDOUT_FILENO, buf, nRead);
+							 }
+						 }
+					 }});
 	stopStartMutex.unlock();
 }
 
