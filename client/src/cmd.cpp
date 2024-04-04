@@ -20,12 +20,10 @@ private:
 ControlFd
 openImpl (const std::string &domain, uint16_t port)
 {
-	ControlFd connFd = NetUtil::connectToServer (domain, port);
-	if (connFd == -1) {
-		return -1;
+	ControlFd connFd = ControlFd (NetUtil::connectToServer (domain, port));
+	if (connFd.isOpened()) {
+		FTPResponseUtil::echoResponse (connFd);
 	}
-	FTPResponseUtil::echoResponse (connFd);
-
 	return connFd;
 }
 
@@ -85,7 +83,7 @@ withPassiveMode (const ControlFd &fd, std::function<void (DataFd dataFd)> callba
 	uint16_t port;
 	FTPResponseUtil::PASVResponse (fd, ip, port);
 
-	DataFd dataFd = NetUtil::connectToServer (ip, port);
+	DataFd dataFd = DataFd (NetUtil::connectToServer (ip, port));
 
 	callback (dataFd);
 
@@ -111,7 +109,7 @@ lsImpl (const ControlFd &fd, const Toggle &isPassive, const std::string &path)
 }
 
 void
-quitImpl (int connFd)
+quitImpl (ControlFd connFd)
 {
 	FTPUtil::sendCmd (connFd, {"QUIT"});
 	FTPResponseUtil::echoResponse (connFd);

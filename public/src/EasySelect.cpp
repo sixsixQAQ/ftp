@@ -52,7 +52,7 @@ EasySelect::Impl::Impl()
 		setError (strerror (errno));
 		return;
 	}
-	m_pipe = std::pair (pipeFds[0], pipeFds[1]);
+	m_pipe = std::pair (int (pipeFds[0]), int (pipeFds[1]));
 
 	addFd ({m_pipe.first, [&] (int fd) { m_pipeReadAble = true; }});
 }

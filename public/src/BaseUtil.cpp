@@ -72,11 +72,11 @@ FAILED:
 }
 
 size_t
-IOUtil::writen (int sockfd, const char *buf, size_t size)
+IOUtil::writen (AbstractFd sockfd, const char *buf, size_t size)
 {
 	size_t totalWrite = 0;
 	for (; totalWrite < size;) {
-		int nwrite = write (sockfd, buf + totalWrite, size - totalWrite);
+		int nwrite = sockfd.write ((void *)(buf + totalWrite), size - totalWrite);
 		if (nwrite < 0) {
 			setError (strerror (errno));
 			return totalWrite;
@@ -87,13 +87,13 @@ IOUtil::writen (int sockfd, const char *buf, size_t size)
 }
 
 std::string
-IOUtil::readAll (int fd)
+IOUtil::readAll (AbstractFd fd)
 {
 	std::stringstream stream;
 
 	char buf[4096];
 	for (;;) {
-		int nRead = read (fd, buf, sizeof (buf));
+		int nRead = fd.read (buf, sizeof (buf));
 		if (nRead == 0) {
 			break;
 		} else if (nRead < 0) {
@@ -132,14 +132,14 @@ NetUtil::domainToIp (const std::string &domain)
 }
 
 void
-NetUtil::syncFile (int inFd, int outFd, std::function<void (size_t syncedSize)> callback)
+NetUtil::syncFile (AbstractFd inFd, AbstractFd outFd, std::function<void (size_t syncedSize)> callback)
 {
 	size_t syncedSize = 0;
-	if (inFd < 0 || outFd < 0)
+	if (!inFd.isOpened() || !outFd.isOpened())
 		return;
 	char buf[4096];
 	for (;;) {
-		int nRead = read (inFd, buf, sizeof (buf));
+		int nRead = inFd.read (buf, sizeof (buf));
 		if (nRead < 0) {
 			setError (strerror (errno));
 			return;
@@ -149,7 +149,7 @@ NetUtil::syncFile (int inFd, int outFd, std::function<void (size_t syncedSize)> 
 
 		int totalWrite = 0;
 		for (; totalWrite < nRead;) {
-			int nWrite = write (outFd, buf + totalWrite, nRead - totalWrite);
+			int nWrite = outFd.write (buf + totalWrite, nRead - totalWrite);
 			if (nWrite < 0) {
 				setError (strerror (errno));
 				return;
@@ -164,30 +164,27 @@ NetUtil::syncFile (int inFd, int outFd, std::function<void (size_t syncedSize)> 
 
 void
 NetUtil::syncLocalToRemote (
-	int sockfd,
-	const std::string &localPath,
-	std::function<void (size_t syncedSize)> callback
+	AbstractFd sockfd, const std::string &localPath, std::function<void (size_t syncedSize)> callback
 )
 {
-	int localFd = open (localPath.c_str(), O_RDONLY);
-	if (localFd == -1) {
+	AbstractFd localFd = AbstractFd (open (localPath.c_str(), O_RDONLY));
+	if (!localFd.isOpened()) {
 		setError (strerror (errno));
 		return;
 	}
 	syncFile (localFd, sockfd, [&] (size_t syncedSize) { callback (syncedSize); });
 
-	close (localFd);
+	localFd.close();
 }
 
 void
 NetUtil::syncRemoteToLocal (
-	int sockfd,
-	const std::string &localPath,
-	std::function<void (size_t syncedSize)> callback
+	AbstractFd sockfd, const std::string &localPath, std::function<void (size_t syncedSize)> callback
 )
 {
-	int localFd = open (localPath.c_str(), O_WRONLY | O_CREAT, 0644);
-	if (localFd == -1) {
+
+	AbstractFd localFd = AbstractFd (open (localPath.c_str(), O_WRONLY | O_CREAT, 0644));
+	if (!localFd.isOpened()) {
 		setError (strerror (errno));
 		return;
 	}
@@ -195,27 +192,26 @@ NetUtil::syncRemoteToLocal (
 		if (callback)
 			callback (syncedSize);
 	});
-	close (localFd);
+	localFd.close();
 }
 
 long
-IOUtil::getFileSize (int fd)
+IOUtil::getFileSize (AbstractFd fd)
 {
+	int64_t currPos;
+	int64_t endPos;
 
-	long currPos;
-	long endPos;
-
-	currPos = lseek (fd, 0, SEEK_CUR);
+	currPos = fd.lseek (0, AbstractFd::Whence::CUR);
 
 	if (currPos == -1)
 		goto FAILED;
 
-	endPos = lseek (fd, 0, SEEK_END);
+	endPos = fd.lseek (0, AbstractFd::Whence::END);
 
 	if (endPos == -1)
 		goto FAILED;
 
-	if (lseek (fd, 0, currPos) == -1)
+	if (fd.lseek (currPos, AbstractFd::Whence::BEG) == -1)
 		goto FAILED;
 	return endPos;
 
@@ -227,12 +223,12 @@ FAILED:
 long
 IOUtil::getFileSize (const std::string &filePath)
 {
-	int fd = open (filePath.c_str(), O_RDONLY);
-	if (fd == -1) {
+	AbstractFd fd = AbstractFd (open (filePath.c_str(), O_RDONLY));
+	if (!fd.isOpened()) {
 		setError (strerror (errno));
 		return -1;
 	}
 	long size = getFileSize (fd);
-	close (fd);
+	fd.close();
 	return size;
 }

@@ -17,10 +17,8 @@ class FTPResponseUtil : public ErrorUtil {
 	// "214 Help OK.\r\n"
 public:
 	// TODO: vector解析多余了一个空字符串。
-	static std::vector<std::string> getResponse (ControlFd connFd);
-	static std::vector<std::string> echoResponse (
-		ControlFd connFd, std::ostream &out = std::cout
-	);
-	static void PASVResponse (ControlFd connFd, std::string &ip, uint16_t &port);
-	static long sizeResponse (ControlFd connFd);
+	static std::vector<std::string> getResponse (AbstractFd connFd);
+	static std::vector<std::string> echoResponse (AbstractFd connFd, std::ostream &out = std::cout);
+	static void PASVResponse (AbstractFd connFd, std::string &ip, uint16_t &port);
+	static long sizeResponse (AbstractFd connFd);
 };

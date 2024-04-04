@@ -12,16 +12,14 @@ FTPUtil::makeUpCmd (const std::vector<std::string> &args)
 		args.begin(),
 		args.end(),
 		std::string(),
-		[] (const std::string &a, const std::string &b) {
-			return a.empty() ? b : a + ' ' + b;
-		}
+		[] (const std::string &a, const std::string &b) { return a.empty() ? b : a + ' ' + b; }
 	);
 	command += "\r\n";
 	return command;
 }
 
 bool
-FTPUtil::sendCmd (ControlFd sockfd, const ArgList &args)
+FTPUtil::sendCmd (AbstractFd sockfd, const ArgList &args)
 {
 	std::string command = makeUpCmd (args);
 
@@ -32,11 +30,7 @@ FTPUtil::sendCmd (ControlFd sockfd, const ArgList &args)
 }
 
 bool
-FTPUtil::sendCmd (
-	ControlFd sockfd,
-	std::function<ArgList (std::istream &)> parser,
-	std::istream &inStream
-)
+FTPUtil::sendCmd (AbstractFd sockfd, std::function<ArgList (std::istream &)> parser, std::istream &inStream)
 {
 	return sendCmd (sockfd, parser (inStream));
 }

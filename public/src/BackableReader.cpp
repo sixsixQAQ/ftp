@@ -12,7 +12,7 @@ public:
 	}
 
 	int read (void *buf, size_t size);
-	void rollBackData (void *buf, size_t size);
+	void unread (void *buf, size_t size);
 	std::string getCached ();
 
 private:
@@ -23,7 +23,6 @@ private:
 int
 BackablaReader::Impl::read (void *buf, size_t size)
 {
-
 	if (m_cache.empty()) {
 		int nRead = ::read (m_fd, buf, size);
 		return nRead;
@@ -39,7 +38,7 @@ BackablaReader::Impl::read (void *buf, size_t size)
 }
 
 void
-BackablaReader::Impl::rollBackData (void *buf, size_t size)
+BackablaReader::Impl::unread (void *buf, size_t size)
 {
 	std::string backed (static_cast<char *> (buf), size);
 	m_cache = backed + m_cache;
@@ -56,7 +55,7 @@ BackablaReader::BackablaReader (int fd) : m_pImpl (std::make_shared<Impl> (fd))
 	assert (m_pImpl);
 }
 
-int
+int64_t
 BackablaReader::read (void *buf, size_t size)
 {
 	assert (m_pImpl);
@@ -64,10 +63,10 @@ BackablaReader::read (void *buf, size_t size)
 }
 
 void
-BackablaReader::rollBackData (void *buf, size_t size)
+BackablaReader::unread (void *buf, size_t size)
 {
 	assert (m_pImpl);
-	return m_pImpl->rollBackData (buf, size);
+	return m_pImpl->unread (buf, size);
 }
 
 std::string
