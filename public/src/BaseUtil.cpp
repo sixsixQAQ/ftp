@@ -86,6 +86,21 @@ IOUtil::writen (int sockfd, const char *buf, size_t size)
 	return totalWrite;
 }
 
+size_t
+IOUtil::readn (int sockfd, char *buf, size_t size)
+{
+	size_t totalRead = 0;
+	for (; totalRead < size;) {
+		int nRead = read (sockfd, buf + totalRead, size - totalRead);
+		if (nRead < 0) {
+			setError (strerror (errno));
+			return totalRead;
+		}
+		totalRead += nRead;
+	}
+	return totalRead;
+}
+
 std::string
 IOUtil::readAll (int fd)
 {
@@ -163,11 +178,7 @@ NetUtil::syncFile (int inFd, int outFd, std::function<void (size_t syncedSize)> 
 }
 
 void
-NetUtil::syncLocalToRemote (
-	int sockfd,
-	const std::string &localPath,
-	std::function<void (size_t syncedSize)> callback
-)
+NetUtil::syncLocalToRemote (int sockfd, const std::string &localPath, std::function<void (size_t syncedSize)> callback)
 {
 	int localFd = open (localPath.c_str(), O_RDONLY);
 	if (localFd == -1) {
@@ -180,11 +191,7 @@ NetUtil::syncLocalToRemote (
 }
 
 void
-NetUtil::syncRemoteToLocal (
-	int sockfd,
-	const std::string &localPath,
-	std::function<void (size_t syncedSize)> callback
-)
+NetUtil::syncRemoteToLocal (int sockfd, const std::string &localPath, std::function<void (size_t syncedSize)> callback)
 {
 	int localFd = open (localPath.c_str(), O_WRONLY | O_CREAT, 0644);
 	if (localFd == -1) {

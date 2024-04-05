@@ -22,7 +22,7 @@ serveForClient (int connfd, struct sockaddr_in clienAddr)
 			stopStartMutex.lock();
 			stopStartMutex.unlock();
 
-			selector.startSelect();
+			selector.start();
 		}
 	});
 
@@ -103,6 +103,16 @@ start ()
 			serveForClient (connfd, clientAddr);
 		}
 	}
+}
+
+void
+dispatchThread ()
+{
+}
+
+void
+asyncServe (int connFd, struct sockaddr_in servAddr)
+{
 }
 
 int
