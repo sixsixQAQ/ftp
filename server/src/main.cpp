@@ -10,60 +10,46 @@
 #include <thread>
 #include <unistd.h>
 
-std::thread serveThread;
+void
+asyncServe (EasySelect &selector, int fd, struct sockaddr_in servAddr)
+{
+	char buf[4096];
+	int nRead = read (fd, buf, sizeof (buf));
+	if (nRead == 0) {
+		close (fd);
+		selector.removeFd (fd);
+	} else if (nRead < 0) {
+		close (fd);
+		selector.removeFd (fd);
+		perror ("read()");
+	} else {
+		std::string userCmd = "USER";
+		std::string passCmd = "PASS";
+
+		std::stringstream stream;
+		stream.write (buf, nRead);
+		std::string request = stream.str();
+		std::cerr << request << "\n";
+		if (request.compare (0, userCmd.length(), userCmd) == 0) {
+			std::string reply = "331 Password,please.\r\n";
+			IOUtil::writen (fd, reply.c_str(), reply.length());
+			std::cerr << reply;
+		} else if (request.compare (0, passCmd.length(), passCmd) == 0) {
+			std::string reply = "230 Login Ok.\r\n";
+			IOUtil::writen (fd, reply.c_str(), reply.length());
+			std::cerr << reply;
+		}
+
+		IOUtil::writen (STDOUT_FILENO, buf, nRead);
+	}
+}
 
 void
-serveForClient (int connfd, struct sockaddr_in clienAddr)
+dispatchService (int connFd, struct sockaddr_in servAddr)
 {
 	static EasySelect selector;
-	static std::mutex stopStartMutex;
-	static std::thread serveThread = std::thread ([&] {
-		while (true) {
-			stopStartMutex.lock();
-			stopStartMutex.unlock();
 
-			selector.start();
-		}
-	});
-
-	std::string acceptMessage = "220 FreeFTP-Server v1.0\r\n";
-	IOUtil::writen (connfd, acceptMessage.c_str(), acceptMessage.length());
-
-	stopStartMutex.lock();
-	selector.addFd ({connfd, [] (int fd) {
-						 char buf[4096];
-						 while (true) {
-							 int nRead = read (fd, buf, sizeof (buf));
-							 if (nRead == 0) {
-								 close (fd);
-								 selector.removeFd (fd);
-							 } else if (nRead < 0) {
-								 close (fd);
-								 selector.removeFd (fd);
-								 perror ("read()");
-							 } else {
-								 std::string userCmd = "USER";
-								 std::string passCmd = "PASS";
-
-								 std::stringstream stream;
-								 stream.write (buf, nRead);
-								 std::string request = stream.str();
-								 std::cerr << request << "\n";
-								 if (request.compare (0, userCmd.length(), userCmd) == 0) {
-									 std::string reply = "331 Password,please.\r\n";
-									 IOUtil::writen (fd, reply.c_str(), reply.length());
-									 std::cerr << reply;
-								 } else if (request.compare (0, passCmd.length(), passCmd) == 0) {
-									 std::string reply = "230 Login Ok.\r\n";
-									 IOUtil::writen (fd, reply.c_str(), reply.length());
-									 std::cerr << reply;
-								 }
-
-								 IOUtil::writen (STDOUT_FILENO, buf, nRead);
-							 }
-						 }
-					 }});
-	stopStartMutex.unlock();
+	selector.addFd (connFd, [&] (int fd) { asyncServe (selector, fd, servAddr); });
 }
 
 void
@@ -100,19 +86,9 @@ start ()
 			perror ("accept()");
 			continue;
 		} else {
-			serveForClient (connfd, clientAddr);
+			dispatchService (connfd, clientAddr);
 		}
 	}
-}
-
-void
-dispatchThread ()
-{
-}
-
-void
-asyncServe (int connFd, struct sockaddr_in servAddr)
-{
 }
 
 int

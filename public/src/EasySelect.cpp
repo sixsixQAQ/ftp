@@ -3,18 +3,19 @@
 #include "BaseUtil.hpp"
 
 #include <cassert>
+#include <mutex>
+#include <stdexcept>
 #include <string.h>
 #include <thread>
 #include <unistd.h>
 
 class EasySelect::Impl {
 public:
-	using Callback = std::function<void (int fd)>;
 
-	Impl();
+	Impl (bool startNow);
 	~Impl();
-	void start ();
-	void addFd (const std::pair<int, Callback> &);
+	void restart ();
+	void addFd (int fd, Callback callback);
 	void removeFd (int fd);
 	void stop ();
 
@@ -25,27 +26,33 @@ private:
 
 	std::unordered_map<int, Callback> m_callbackMap;
 	std::thread m_workThread;
+	bool m_bRunning = false;
+	std::mutex m_mutex;
 };
 
 void
-EasySelect::Impl::addFd (const std::pair<int, Callback> &pair)
+EasySelect::Impl::addFd (int fd, Callback callback)
 {
-	stop();
-	m_fds.emplace_back (pair.first);
-	m_callbackMap.insert (pair);
-	start();
+	{
+		std::lock_guard<std::mutex> lock (m_mutex);
+		m_fds.emplace_back (fd);
+		m_callbackMap.insert ({fd, callback});
+	}
+	restart();
 }
 
 void
 EasySelect::Impl::removeFd (int fd)
 {
-	stop();
-	m_fds.erase (std::find (m_fds.begin(), m_fds.end(), fd));
-	m_callbackMap.erase (fd);
-	start();
+	{
+		std::lock_guard<std::mutex> lock (m_mutex);
+		m_fds.erase (std::find (m_fds.begin(), m_fds.end(), fd));
+		m_callbackMap.erase (fd);
+	}
+	restart();
 }
 
-EasySelect::Impl::Impl()
+EasySelect::Impl::Impl (bool startNow)
 {
 	int pipeFds[2];
 	if (pipe (pipeFds) == -1) {
@@ -54,11 +61,15 @@ EasySelect::Impl::Impl()
 	}
 	m_pipe = std::pair (pipeFds[0], pipeFds[1]);
 
-	addFd ({m_pipe.first, [&] (int fd) {
-				char ANY_CHAR;
-				IOUtil::readn (fd, &ANY_CHAR, 1);
-				throw std::exception();
-			}});
+	addFd (m_pipe.first, [&] (int fd) {
+		char ANY_CHAR;
+		IOUtil::readn (fd, &ANY_CHAR, 1);
+		throw std::runtime_error ("pipe readable");
+	});
+
+	if (startNow) {
+		restart();
+	}
 }
 
 EasySelect::Impl::~Impl()
@@ -69,8 +80,9 @@ EasySelect::Impl::~Impl()
 }
 
 void
-EasySelect::Impl::start()
+EasySelect::Impl::restart()
 {
+	std::lock_guard<std::mutex> lock (m_mutex);
 	stop();
 	m_workThread = std::thread ([&] {
 		while (true) {
@@ -85,16 +97,21 @@ EasySelect::Impl::start()
 			}
 		}
 	});
+	m_bRunning	 = true;
 }
 
 void
 EasySelect::Impl::stop()
 {
+	if (m_bRunning == false)
+		return;
 	if (m_workThread.joinable()) {
 		char ANY_CHAR = 0;
 		IOUtil::writen (m_pipe.second, &ANY_CHAR, sizeof (ANY_CHAR));
 		m_workThread.join();
 	}
+
+	m_bRunning = false;
 }
 
 std::vector<int>
@@ -132,23 +149,23 @@ EasySelect::Impl::selectOnce()
 
 ///////////////////////////////////////////////////////////
 
-EasySelect::EasySelect() : m_pImpl (std::make_shared<Impl>())
+EasySelect::EasySelect (bool start) : m_pImpl (std::make_shared<Impl> (start))
 {
 	assert (m_pImpl);
 }
 
 void
-EasySelect::start()
+EasySelect::restart()
 {
 	assert (m_pImpl);
-	return m_pImpl->start();
+	return m_pImpl->restart();
 }
 
 void
-EasySelect::addFd (const std::pair<int, Callback> &pair)
+EasySelect::addFd (int fd, Callback callback)
 {
 	assert (m_pImpl);
-	return m_pImpl->addFd (pair);
+	return m_pImpl->addFd (fd, callback);
 }
 
 void

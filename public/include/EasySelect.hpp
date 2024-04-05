@@ -10,9 +10,9 @@ class EasySelect : public ErrorUtil {
 public:
 	using Callback = std::function<void (int fd)>;
 
-	EasySelect();
-	void start ();
-	void addFd (const std::pair<int, Callback> &);
+	EasySelect (bool start = true);
+	void restart ();
+	void addFd (int fd, Callback callback);
 	void removeFd (int fd);
 	void stop ();
 
