@@ -14,4 +14,4 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_SOURCE_DIR}/public/include"
 )
 target_link_directories(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/lib")
-target_link_libraries(${PROJECT_NAME} PRIVATE FreeFTPPublic)
+target_link_libraries(${PROJECT_NAME} PRIVATE FreeFTPPublic crypt)

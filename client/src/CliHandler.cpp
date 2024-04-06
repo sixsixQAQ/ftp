@@ -2,6 +2,7 @@
 
 #include "BaseUtil.hpp"
 #include "ProtocolConfig.hpp"
+#include "StrUtil.hpp"
 #include "cmd.hpp"
 
 #include <functional>
@@ -43,72 +44,27 @@ private:
 	static const std::unordered_map<std::string, CmdInfo> &getHandlerMap ()
 	{
 		static std::unordered_map<std::string, CmdInfo> cmdHandlerMap {
-			{"open",
-			 {openHandler,
-			  "usage: open host-name [port]",
-			  "open\t\tconnect to remote ftp server"}},
-			{"passive",
-			 {passiveHandler,
-			  "usage: passive",
-			  "passive\t\ttoggle use of passive transfer mode"}},
-			{"pwd",
-			 {pwdHandler,
-			  "usage: pwd",
-			  "pwd\t\tprint working directory on remote machine"}},
-			{"delete",
-			 {deleteHandler,
-			  "usage: delete remote-file",
-			  "delete\t\tdelete remote file"}},
-			{"rmdir",
-			 {rmdirHandler,
-			  "usage: rmdir directory-name",
-			  "rmdir\t\tremove directory on the remote machine"}},
-			{"mkdir",
-			 {mkdirHandler,
-			  "usage: mkdir directory-name",
-			  "mkdir\t\tmake directory on the remote machine"}},
+			{"open", {openHandler, "usage: open host-name [port]", "open\t\tconnect to remote ftp server"}},
+			{"passive", {passiveHandler, "usage: passive", "passive\t\ttoggle use of passive transfer mode"}},
+			{"pwd", {pwdHandler, "usage: pwd", "pwd\t\tprint working directory on remote machine"}},
+			{"delete", {deleteHandler, "usage: delete remote-file", "delete\t\tdelete remote file"}},
+			{"rmdir", {rmdirHandler, "usage: rmdir directory-name", "rmdir\t\tremove directory on the remote machine"}},
+			{"mkdir", {mkdirHandler, "usage: mkdir directory-name", "mkdir\t\tmake directory on the remote machine"}},
 			{"ls", {lsHandler, "ls [remote-path]", "ls\t\tlist contents of remote path"}},
-			{"quit",
-			 {quitHandler, "usage: quit", "quit\t\tterminate ftp session and exit"}},
-			{"rename",
-			 {renameHandler, "usage: rename from-name to-name", "rename\t\trename file"}},
-			{"put",
-			 {putHandler, "usage: put local-file [remote-file]", "put\t\tsend one file"}},
-			{"get",
-			 {getHandler, "usage: get remote-file [local-file]", "get\t\treceive file"}},
-			{"help",
-			 {helpHandler,
-			  "usage: help [cmd name]",
-			  "help\t\tprint local help information"}},
-			{"cd",
-			 {cdHandler,
-			  "usage: cd remote-directory",
-			  "cd\t\tchange remote working directory"}},
-			{"size",
-			 {sizeHandler,
-			  "usage: size remote-file",
-			  "size\t\tshow size of remote file"}},
+			{"quit", {quitHandler, "usage: quit", "quit\t\tterminate ftp session and exit"}},
+			{"rename", {renameHandler, "usage: rename from-name to-name", "rename\t\trename file"}},
+			{"put", {putHandler, "usage: put local-file [remote-file]", "put\t\tsend one file"}},
+			{"get", {getHandler, "usage: get remote-file [local-file]", "get\t\treceive file"}},
+			{"help", {helpHandler, "usage: help [cmd name]", "help\t\tprint local help information"}},
+			{"cd", {cdHandler, "usage: cd remote-directory", "cd\t\tchange remote working directory"}},
+			{"size", {sizeHandler, "usage: size remote-file", "size\t\tshow size of remote file"}},
 
 		};
 		return cmdHandlerMap;
 	}
 };
 
-static std::vector<std::string>
-split (const std::string &str)
-{
-	std::vector<std::string> tokens;
-	std::stringstream stream (str);
-
-	std::string token;
-	while (stream >> token) {
-		tokens.emplace_back (token);
-	}
-	return tokens;
-}
-
-CliHandler::CliHandler (std::istream &inStream, std::ostream &outStream) :
-	m_cliContext (inStream, outStream)
+CliHandler::CliHandler (std::istream &inStream, std::ostream &outStream) : m_cliContext (inStream, outStream)
 {
 }
 
@@ -129,7 +85,7 @@ CliHandler::parseOneLine (std::istream &inStream)
 {
 	std::string cmdLine;
 	getline (inStream, cmdLine);
-	return split (cmdLine);
+	return StrUtil::splitCmdLine (cmdLine);
 }
 
 void
@@ -197,8 +153,7 @@ CmdHandler::passiveHandler (Context &context, const std::vector<std::string> &ar
 		return;
 	}
 	passiveImpl (context.PASV_Toggle);
-	context.outStream << "Passive Mode: " << std::boolalpha << context.PASV_Toggle
-					  << "\n";
+	context.outStream << "Passive Mode: " << std::boolalpha << context.PASV_Toggle << "\n";
 }
 
 void
@@ -322,8 +277,7 @@ CmdHandler::putHandler (Context &context, const std::vector<std::string> &args)
 
 	putImpl (context.ctrlFd, args[1], args[2], [&] (size_t syncedSize) {
 		auto str = "\rWhole Size:" + std::to_string (wholeSize / 1024.0 / 1024.0) +
-				   "MB,transfered:" + std::to_string (syncedSize / 1024.0 / 1024.0) +
-				   "MB";
+				   "MB,transfered:" + std::to_string (syncedSize / 1024.0 / 1024.0) + "MB";
 		write (STDOUT_FILENO, str.c_str(), str.size());
 	});
 }
@@ -344,8 +298,7 @@ CmdHandler::getHandler (Context &context, const std::vector<std::string> &args)
 	}
 	getImpl (context.ctrlFd, args[1], args[2], [&] (size_t syncedSize) {
 		auto str = "\rWhole Size:" + std::to_string (wholeSize / 1024.0 / 1024.0) +
-				   "MB,transfered:" + std::to_string (syncedSize / 1024.0 / 1024.0) +
-				   "MB";
+				   "MB,transfered:" + std::to_string (syncedSize / 1024.0 / 1024.0) + "MB";
 		write (STDOUT_FILENO, str.c_str(), str.size());
 	});
 }
