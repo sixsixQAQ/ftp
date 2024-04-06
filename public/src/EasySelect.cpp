@@ -14,108 +14,98 @@ public:
 
 	Impl (bool startNow);
 	~Impl();
-	void restart ();
+	void start ();
 	void addFd (int fd, Callback callback);
 	void removeFd (int fd);
 	void stop ();
 
 private:
-	std::vector<int> selectOnce ();
+	std::vector<int> waitForReadable ();
 	std::vector<int> m_fds;
-	std::pair<int, int> m_pipe;
 
 	std::unordered_map<int, Callback> m_callbackMap;
 	std::thread m_workThread;
-	bool m_bRunning = false;
 	std::mutex m_mutex;
+
+	bool m_isRunning = false;
+	std::pair<int, int> m_pipe;
+	void openPipe ();
+	void closePipe ();
 };
 
 void
 EasySelect::Impl::addFd (int fd, Callback callback)
 {
-	{
-		std::lock_guard<std::mutex> lock (m_mutex);
-		m_fds.emplace_back (fd);
-		m_callbackMap.insert ({fd, callback});
-	}
-	restart();
+	std::lock_guard<std::mutex> lock (m_mutex);
+	m_fds.emplace_back (fd);
+	m_callbackMap.insert ({fd, callback});
 }
 
 void
 EasySelect::Impl::removeFd (int fd)
 {
-	{
-		std::lock_guard<std::mutex> lock (m_mutex);
-		m_fds.erase (std::find (m_fds.begin(), m_fds.end(), fd));
-		m_callbackMap.erase (fd);
-	}
-	restart();
+	std::lock_guard<std::mutex> lock (m_mutex);
+	m_fds.erase (std::find (m_fds.begin(), m_fds.end(), fd));
+	m_callbackMap.erase (fd);
 }
 
 EasySelect::Impl::Impl (bool startNow)
 {
-	int pipeFds[2];
-	if (pipe (pipeFds) == -1) {
-		setError (strerror (errno));
-		return;
-	}
-	m_pipe = std::pair (pipeFds[0], pipeFds[1]);
-
-	addFd (m_pipe.first, [&] (int fd) {
-		char ANY_CHAR;
-		IOUtil::readn (fd, &ANY_CHAR, 1);
-		throw std::runtime_error ("pipe readable");
-	});
-
 	if (startNow) {
-		restart();
+		start();
 	}
 }
 
 EasySelect::Impl::~Impl()
 {
 	stop();
-	::close (m_pipe.first);
-	::close (m_pipe.second);
 }
 
 void
-EasySelect::Impl::restart()
+EasySelect::Impl::start()
 {
-	std::lock_guard<std::mutex> lock (m_mutex);
-	stop();
+	if (m_isRunning)
+		return;
+	openPipe();
+
 	m_workThread = std::thread ([&] {
 		while (true) {
-			std::vector<int> fds = selectOnce();
+
+			std::vector<int> fds = waitForReadable();
 
 			for (auto fd : fds) {
 				auto callbackIt = m_callbackMap.find (fd);
 				assert (callbackIt != m_callbackMap.end() && "确保map和vector中fd同步");
 				if (!callbackIt->second)
 					continue;
-				callbackIt->second (fd);
+				try {
+					callbackIt->second (fd);
+				} catch (...) {
+					return;
+				}
 			}
 		}
 	});
-	m_bRunning	 = true;
+	m_isRunning	 = true;
 }
 
 void
 EasySelect::Impl::stop()
 {
-	if (m_bRunning == false)
+	if (m_isRunning == false)
 		return;
+
 	if (m_workThread.joinable()) {
 		char ANY_CHAR = 0;
 		IOUtil::writen (m_pipe.second, &ANY_CHAR, sizeof (ANY_CHAR));
 		m_workThread.join();
+		closePipe();
 	}
-
-	m_bRunning = false;
+	m_isRunning = false;
 }
 
 std::vector<int>
-EasySelect::Impl::selectOnce()
+EasySelect::Impl::waitForReadable()
 {
 	fd_set fdSet;
 	FD_ZERO (&fdSet);
@@ -147,6 +137,31 @@ EasySelect::Impl::selectOnce()
 	return ret;
 }
 
+void
+EasySelect::Impl::openPipe()
+{
+	int pipeFds[2];
+	if (pipe (pipeFds) == -1) {
+		setError (strerror (errno));
+		return;
+	}
+	m_pipe = std::pair (pipeFds[0], pipeFds[1]);
+
+	addFd (m_pipe.first, [&] (int fd) {
+		char ANY_CHAR;
+		IOUtil::readn (fd, &ANY_CHAR, 1);
+		throw std::runtime_error ("pipe readable");
+	});
+}
+
+void
+EasySelect::Impl::closePipe()
+{
+	removeFd (m_pipe.first);
+	::close (m_pipe.first);
+	::close (m_pipe.second);
+}
+
 ///////////////////////////////////////////////////////////
 
 EasySelect::EasySelect (bool start) : m_pImpl (std::make_shared<Impl> (start))
@@ -155,10 +170,10 @@ EasySelect::EasySelect (bool start) : m_pImpl (std::make_shared<Impl> (start))
 }
 
 void
-EasySelect::restart()
+EasySelect::start()
 {
 	assert (m_pImpl);
-	return m_pImpl->restart();
+	return m_pImpl->start();
 }
 
 void

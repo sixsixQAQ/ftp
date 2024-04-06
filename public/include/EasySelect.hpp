@@ -11,7 +11,7 @@ public:
 	using Callback = std::function<void (int fd)>;
 
 	EasySelect (bool start = true);
-	void restart ();
+	void start ();
 	void addFd (int fd, Callback callback);
 	void removeFd (int fd);
 	void stop ();

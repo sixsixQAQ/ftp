@@ -3,9 +3,9 @@
 #include <memory>
 #include <string>
 
-class BackablaReader {
+class BackableReader {
 public:
-	BackablaReader (int fd);
+	BackableReader (int fd);
 	int64_t read (void *buf, size_t size);
 	void unread (void *buf, size_t size);
 	std::string getCached ();

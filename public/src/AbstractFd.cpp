@@ -63,7 +63,7 @@ public:
 
 private:
 	int m_fd;
-	BackablaReader m_reader;
+	BackableReader m_reader;
 };
 
 AbstractFd::AbstractFd (int fd) : m_pImpl (std::make_shared<Impl> (fd))

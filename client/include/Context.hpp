@@ -1,22 +1,10 @@
 #pragma once
 
 #include "AbstractFd.hpp"
+#include "Toggle.hpp"
 
 #include <iostream>
 #include <memory>
-
-class Toggle {
-public:
-	Toggle();
-	void toggle ();
-	void turnOn ();
-	void turnOff ();
-	operator bool () const;
-
-private:
-	class Impl;
-	std::shared_ptr<Impl> m_pImpl = nullptr;
-};
 
 struct Context {
 	Context (std::istream &inStream, std::ostream &outStream) :

@@ -14,7 +14,7 @@ testBackableReader ()
 	int readFd	= pipeFds[0];
 	int writeFd = pipeFds[1];
 
-	BackablaReader reader (readFd);
+	BackableReader reader (readFd);
 	assert (reader.getCached() == "");
 
 	std::string str = "hello world\r\n";
