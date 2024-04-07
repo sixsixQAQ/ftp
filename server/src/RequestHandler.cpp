@@ -20,8 +20,8 @@ struct Handlers {
 	{
 		static std::unordered_map<std::string, Handler> handlerMap {
 			{"USER", USER_handler},
-			{"PASS", USER_handler},
-			{"PWD", USER_handler},
+			{"PASS", PASS_handler},
+			{"PWD", PWD_handler},
 		};
 		return handlerMap;
 	}
@@ -39,7 +39,7 @@ RequestHandler::exec (std::vector<std::string> requestArgs)
 	auto handlerMap = Handlers::getHandlerMap();
 	auto pair		= handlerMap.find (requestArgs[0]);
 	if (pair == handlerMap.end()) {
-		return;
+		FTPUtil::sendCmd (m_context.ctrlFd, {"502", "command is not implememnted"});
 	} else {
 		pair->second (m_context, requestArgs);
 	}
@@ -51,7 +51,7 @@ Handlers::USER_handler (ClientContext &context, const std::vector<std::string> a
 	if (args.size() != 2)
 		return;
 	context.username = args[1];
-	FTPUtil::sendCmd (context.ctrlFd, {"331", " ", "Please specify the password."});
+	FTPUtil::sendCmd (context.ctrlFd, {"331", "Please specify the password."});
 }
 
 void
@@ -61,11 +61,12 @@ Handlers::PASS_handler (ClientContext &context, const std::vector<std::string> a
 		return;
 	context.password = args[1];
 	if (SysUtil::authenticate (context.username, context.password)) {
-		FTPUtil::sendCmd (context.ctrlFd, {"230", " ", "Login Ok"});
-	} else {
-		FTPUtil::sendCmd (context.ctrlFd, {"530", " ", "Login incorrect."});
+		FTPUtil::sendCmd (context.ctrlFd, {"230", "Login Ok"});
+
 		context.isLogined = true;
 		context.currDir	  = SysUtil::getHomeOf (context.username);
+	} else {
+		FTPUtil::sendCmd (context.ctrlFd, {"530", "Login incorrect."});
 	}
 }
 
@@ -76,8 +77,8 @@ Handlers::PWD_handler (ClientContext &context, const std::vector<std::string> ar
 		return;
 	if (!context.isLogined) {
 		// "530 Please login with USER and PASS.
-		FTPUtil::sendCmd (context.ctrlFd, {"530", " ", "Please login with USER and PASS."});
+		FTPUtil::sendCmd (context.ctrlFd, {"530", "Please login with USER and PASS."});
 	} else {
-		FTPUtil::sendCmd (context.ctrlFd, {"257", " ", context.currDir});
+		FTPUtil::sendCmd (context.ctrlFd, {"257", "\"" + context.currDir + "\" is the current directory"});
 	}
 }

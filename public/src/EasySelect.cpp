@@ -2,12 +2,14 @@
 
 #include "BaseUtil.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <mutex>
 #include <stdexcept>
 #include <string.h>
 #include <thread>
 #include <unistd.h>
+#include <unordered_map>
 
 class EasySelect::Impl {
 public:
@@ -31,6 +33,7 @@ private:
 	std::pair<int, int> m_pipe;
 	void openPipe ();
 	void closePipe ();
+	bool m_shouldThreadReturn = false;
 };
 
 void
@@ -68,25 +71,48 @@ EasySelect::Impl::start()
 		return;
 	openPipe();
 
-	m_workThread = std::thread ([&] {
-		while (true) {
+	// m_workThread = std::thread ([=] {
+	// 	while (true) {
 
-			std::vector<int> fds = waitForReadable();
+	// 		std::vector<int> fds = waitForReadable();
 
-			for (auto fd : fds) {
-				auto callbackIt = m_callbackMap.find (fd);
-				assert (callbackIt != m_callbackMap.end() && "确保map和vector中fd同步");
-				if (!callbackIt->second)
-					continue;
-				try {
+	// 		for (auto fd : fds) {
+	// 			auto callbackIt = m_callbackMap.find (fd);
+	// 			assert (callbackIt != m_callbackMap.end() && "确保map和vector中fd同步");
+	// 			if (!callbackIt->second)
+	// 				continue;
+
+	// 			callbackIt->second (fd);
+	// 			if (m_shouldThreadReturn) {
+	// 				return;
+	// 			}
+	// 		}
+	// 	}
+	// });
+	m_workThread = std::thread (
+		[] (Impl *selector, std::unordered_map<int, Callback> map, bool *shouldReturn) {
+			while (true) {
+
+				std::vector<int> fds = selector->waitForReadable();
+
+				for (auto fd : fds) {
+					auto callbackIt = map.find (fd);
+					assert (callbackIt != map.end() && "确保map和vector中fd同步");
+					if (!callbackIt->second)
+						continue;
+
 					callbackIt->second (fd);
-				} catch (...) {
-					return;
+					if (*shouldReturn) {
+						return;
+					}
 				}
 			}
-		}
-	});
-	m_isRunning	 = true;
+		},
+		this,
+		m_callbackMap,
+		&m_shouldThreadReturn
+	);
+	m_isRunning = true;
 }
 
 void
@@ -140,17 +166,18 @@ EasySelect::Impl::waitForReadable()
 void
 EasySelect::Impl::openPipe()
 {
+	m_shouldThreadReturn = false;
 	int pipeFds[2];
 	if (pipe (pipeFds) == -1) {
 		setError (strerror (errno));
 		return;
 	}
-	m_pipe = std::pair<int,int> (pipeFds[0], pipeFds[1]);
+	m_pipe = std::pair<int, int> (pipeFds[0], pipeFds[1]);
 
 	addFd (m_pipe.first, [&] (int fd) {
 		char ANY_CHAR;
 		IOUtil::readn (fd, &ANY_CHAR, 1);
-		throw std::runtime_error ("pipe readable");
+		m_shouldThreadReturn = true;
 	});
 }
 
