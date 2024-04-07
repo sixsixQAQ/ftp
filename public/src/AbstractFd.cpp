@@ -78,7 +78,7 @@ AbstractFd::close()
 	return m_pImpl->close();
 }
 
-ssize_t
+int64_t
 AbstractFd::read (void *buf, size_t size)
 {
 	assert (m_pImpl);

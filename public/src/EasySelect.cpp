@@ -145,7 +145,7 @@ EasySelect::Impl::openPipe()
 		setError (strerror (errno));
 		return;
 	}
-	m_pipe = std::pair (pipeFds[0], pipeFds[1]);
+	m_pipe = std::pair<int,int> (pipeFds[0], pipeFds[1]);
 
 	addFd (m_pipe.first, [&] (int fd) {
 		char ANY_CHAR;
