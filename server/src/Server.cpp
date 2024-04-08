@@ -77,9 +77,9 @@ Server::Impl::work()
 		} else {
 
 			std::vector<std::string> request = RequestUtil::parseOneFullRequest_v2 (ctrlReader, buf, nRead);
-			continue;
 			if (request.empty())
-				handler.exec (request);
+				continue;
+			handler.exec (request);
 		}
 	}
 }

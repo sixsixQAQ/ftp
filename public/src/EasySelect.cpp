@@ -17,8 +17,8 @@ public:
 	Impl (bool startNow);
 	~Impl();
 	void start ();
-	void addFd (int fd, Callback callback);
-	void removeFd (int fd);
+	void addFd (int fd, Callback callback, bool withLock = true);
+	void removeFd (int fd, bool withLock = true);
 	void stop ();
 
 private:
@@ -31,23 +31,27 @@ private:
 
 	bool m_isRunning = false;
 	std::pair<int, int> m_pipe;
-	void openPipe ();
-	void closePipe ();
+	void openPipe (bool withLock);
+	void closePipe (bool wihLock);
 	bool m_shouldThreadReturn = false;
 };
 
 void
-EasySelect::Impl::addFd (int fd, Callback callback)
+EasySelect::Impl::addFd (int fd, Callback callback, bool withLock)
 {
-	std::lock_guard<std::mutex> lock (m_mutex);
+	std::unique_lock<std::mutex> lock (m_mutex, std::defer_lock);
+	if (withLock)
+		lock.lock();
 	m_fds.emplace_back (fd);
 	m_callbackMap.insert ({fd, callback});
 }
 
 void
-EasySelect::Impl::removeFd (int fd)
+EasySelect::Impl::removeFd (int fd, bool withLock)
 {
-	std::lock_guard<std::mutex> lock (m_mutex);
+	std::unique_lock<std::mutex> lock (m_mutex, std::defer_lock);
+	if (withLock)
+		lock.lock();
 	m_fds.erase (std::find (m_fds.begin(), m_fds.end(), fd));
 	m_callbackMap.erase (fd);
 }
@@ -67,30 +71,12 @@ EasySelect::Impl::~Impl()
 void
 EasySelect::Impl::start()
 {
+	std::lock_guard<std::mutex> lock (m_mutex);
 	if (m_isRunning)
 		return;
-	openPipe();
-
-	// m_workThread = std::thread ([=] {
-	// 	while (true) {
-
-	// 		std::vector<int> fds = waitForReadable();
-
-	// 		for (auto fd : fds) {
-	// 			auto callbackIt = m_callbackMap.find (fd);
-	// 			assert (callbackIt != m_callbackMap.end() && "确保map和vector中fd同步");
-	// 			if (!callbackIt->second)
-	// 				continue;
-
-	// 			callbackIt->second (fd);
-	// 			if (m_shouldThreadReturn) {
-	// 				return;
-	// 			}
-	// 		}
-	// 	}
-	// });
+	openPipe (false);
 	m_workThread = std::thread (
-		[] (Impl *selector, std::unordered_map<int, Callback> map, bool *shouldReturn) {
+		[] (Impl *selector, const std::unordered_map<int, Callback> &map, bool &shouldReturn) {
 			while (true) {
 
 				std::vector<int> fds = selector->waitForReadable();
@@ -102,15 +88,15 @@ EasySelect::Impl::start()
 						continue;
 
 					callbackIt->second (fd);
-					if (*shouldReturn) {
+					if (shouldReturn) {
 						return;
 					}
 				}
 			}
 		},
 		this,
-		m_callbackMap,
-		&m_shouldThreadReturn
+		std::ref (m_callbackMap),
+		std::ref (m_shouldThreadReturn)
 	);
 	m_isRunning = true;
 }
@@ -118,6 +104,7 @@ EasySelect::Impl::start()
 void
 EasySelect::Impl::stop()
 {
+	std::lock_guard<std::mutex> lock (m_mutex);
 	if (m_isRunning == false)
 		return;
 
@@ -125,7 +112,7 @@ EasySelect::Impl::stop()
 		char ANY_CHAR = 0;
 		IOUtil::writen (m_pipe.second, &ANY_CHAR, sizeof (ANY_CHAR));
 		m_workThread.join();
-		closePipe();
+		closePipe (false);
 	}
 	m_isRunning = false;
 }
@@ -164,7 +151,7 @@ EasySelect::Impl::waitForReadable()
 }
 
 void
-EasySelect::Impl::openPipe()
+EasySelect::Impl::openPipe (bool withLock)
 {
 	m_shouldThreadReturn = false;
 	int pipeFds[2];
@@ -174,17 +161,22 @@ EasySelect::Impl::openPipe()
 	}
 	m_pipe = std::pair<int, int> (pipeFds[0], pipeFds[1]);
 
-	addFd (m_pipe.first, [&] (int fd) {
-		char ANY_CHAR;
-		IOUtil::readn (fd, &ANY_CHAR, 1);
-		m_shouldThreadReturn = true;
-	});
+
+	addFd (
+		m_pipe.first,
+		[&] (int fd) {
+			char ANY_CHAR;
+			IOUtil::readn (fd, &ANY_CHAR, 1);
+			m_shouldThreadReturn = true;
+		},
+		withLock
+	);
 }
 
 void
-EasySelect::Impl::closePipe()
+EasySelect::Impl::closePipe (bool withLock)
 {
-	removeFd (m_pipe.first);
+	removeFd (m_pipe.first, withLock);
 	::close (m_pipe.first);
 	::close (m_pipe.second);
 }
