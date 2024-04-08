@@ -13,8 +13,8 @@ struct Handlers {
 	static void PASS_handler (ClientContext &context, const std::vector<std::string> args);
 	// static void LIST_handler(ClientContext &context, const std::vector<std::string> args);
 	static void PWD_handler (ClientContext &context, const std::vector<std::string> args);
-
-	// static void PASV_handler(ClientContext &context, const std::vector<std::string> args);
+	static void QUIT_handler (ClientContext &context, const std::vector<std::string> args);
+	static void PASV_handler (ClientContext &context, const std::vector<std::string> args);
 
 	static std::unordered_map<std::string, Handler> &getHandlerMap ()
 	{
@@ -22,6 +22,8 @@ struct Handlers {
 			{"USER", USER_handler},
 			{"PASS", PASS_handler},
 			{"PWD", PWD_handler},
+			{"QUIT", QUIT_handler},
+			{"PASV", PASV_handler},
 		};
 		return handlerMap;
 	}
@@ -80,5 +82,25 @@ Handlers::PWD_handler (ClientContext &context, const std::vector<std::string> ar
 		FTPUtil::sendCmd (context.ctrlFd, {"530", "Please login with USER and PASS."});
 	} else {
 		FTPUtil::sendCmd (context.ctrlFd, {"257", "\"" + context.currDir + "\" is the current directory"});
+	}
+}
+
+void
+Handlers::QUIT_handler (ClientContext &context, const std::vector<std::string> args)
+{
+	if (args.size() != 1)
+		return;
+	if (context.isLogined) {
+		FTPUtil::sendCmd (context.ctrlFd, {"221", "GoodBye."});
+	}
+}
+
+void
+Handlers::PASV_handler (ClientContext &context, const std::vector<std::string> args)
+{
+	if (args.size() != 1)
+		return;
+	if (context.isLogined) {
+		FTPUtil::sendCmd (context.ctrlFd, {"227", "Entering Passive Mode (139,199,176,107,159,126)"});
 	}
 }

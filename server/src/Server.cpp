@@ -17,7 +17,7 @@
 #include <thread>
 #include <unistd.h>
 
-class Server::Impl {
+class ControlServer::Impl {
 public:
 	Impl (EasySelect *dispatcher, int ctrlFd, struct sockaddr_in addr);
 	void notifyDataCome ();
@@ -35,7 +35,7 @@ private:
 	bool m_haveData = false;
 };
 
-Server::Impl::Impl (EasySelect *dispatcher, int ctrlFd, sockaddr_in addr) : m_dispatcher (dispatcher)
+ControlServer::Impl::Impl (EasySelect *dispatcher, int ctrlFd, sockaddr_in addr) : m_dispatcher (dispatcher)
 {
 
 	m_context.clientAddr = addr;
@@ -47,7 +47,7 @@ Server::Impl::Impl (EasySelect *dispatcher, int ctrlFd, sockaddr_in addr) : m_di
 }
 
 void
-Server::Impl::notifyDataCome()
+ControlServer::Impl::notifyDataCome()
 {
 	std::lock_guard<std::mutex> lock (m_mutex);
 	m_haveData = true;
@@ -55,7 +55,7 @@ Server::Impl::notifyDataCome()
 }
 
 void
-Server::Impl::work()
+ControlServer::Impl::work()
 {
 	BackableReader ctrlReader (m_context.ctrlFd);
 	RequestHandler handler (m_context);
@@ -85,7 +85,7 @@ Server::Impl::work()
 }
 
 void
-Server::Impl::stopService()
+ControlServer::Impl::stopService()
 {
 	m_context.ctrlFd.close();
 	m_context.dataFd.close();
@@ -96,14 +96,14 @@ Server::Impl::stopService()
 }
 
 ////////////////////////////////////////////////////////////////////////////
-Server::Server (EasySelect *dispatcher, int ctrlFd, sockaddr_in addr) :
+ControlServer::ControlServer (EasySelect *dispatcher, int ctrlFd, sockaddr_in addr) :
 	m_pImpl (std::make_shared<Impl> (dispatcher, ctrlFd, addr))
 {
 	assert (m_pImpl);
 }
 
 void
-Server::notifyDataCome()
+ControlServer::notifyDataCome()
 {
 	assert (m_pImpl);
 	return m_pImpl->notifyDataCome();

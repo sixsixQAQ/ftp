@@ -5,9 +5,9 @@
 #include <memory>
 #include <netinet/in.h>
 
-class Server : public ErrorUtil {
+class ControlServer : public ErrorUtil {
 public:
-	Server (EasySelect *dispatcher, int ctrlFd, struct sockaddr_in addr);
+	ControlServer (EasySelect *dispatcher, int ctrlFd, struct sockaddr_in addr);
 	void notifyDataCome ();
 
 private:
