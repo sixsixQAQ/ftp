@@ -4,6 +4,7 @@
 #include "Server.hpp"
 #include "SysUtil.hpp"
 
+#include <cassert>
 #include <functional>
 #include <unordered_map>
 
@@ -126,7 +127,7 @@ Handlers::PASV_handler (ClientContext &context, const std::vector<std::string> a
 
 			struct sockaddr_in servAddr;
 			socklen_t addrLen;
-			getsockname (listenFd, (struct sockaddr *)&servAddr, &addrLen);
+			assert (getsockname (listenFd, (struct sockaddr *)&servAddr, &addrLen) == 0);
 			uint16_t port		 = ntohs (servAddr.sin_port);
 			uint8_t headByte	 = ((uint8_t *)&port)[1];
 			uint8_t tailByte	 = ((uint8_t *)&port)[0];
