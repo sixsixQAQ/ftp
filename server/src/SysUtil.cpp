@@ -6,17 +6,30 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-// 验证用户登录信息
+/// 出处:
+/// https://stackoverflow.com/questions/17499163/how-to-check-password-in-linux-by-using-c-or-shell
 bool
-SysUtil::authenticate (const std::string &username, const std::string &password)
+SysUtil::authenticate (const std::string &username, const std::string &passwd)
 {
-	struct passwd *sp;
-	sp = getpwnam (username.c_str());
-	if (sp != NULL) {
-		// 比较用户提供的密码与系统中存储的密码哈希值
-		return strcmp (crypt (password.c_str(), sp->pw_passwd), sp->pw_passwd) == 0;
+
+	struct passwd *passwdEntry = getpwnam (username.c_str());
+	if (!passwdEntry) {
+		// printf ("User '%s' doesn't exist\n", user);
+		return 1;
 	}
-	return false;
+	// password is in /etc/passwd
+	if (strcmp (passwdEntry->pw_passwd, "x") != 0) {
+		return strcmp (passwdEntry->pw_passwd, crypt (passwd.c_str(), passwdEntry->pw_passwd)) == 0;
+	} else {
+		// password is in /etc/shadow
+		struct spwd *shadowEntry = getspnam (username.c_str());
+		if (!shadowEntry) {
+			// printf ("Failed to read shadow entry for user '%s'\n", user);
+			return false;
+		}
+
+		return strcmp (shadowEntry->sp_pwdp, crypt (passwd.c_str(), shadowEntry->sp_pwdp)) == 0;
+	}
 }
 
 std::string
