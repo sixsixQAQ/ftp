@@ -29,7 +29,7 @@ struct Handlers {
 	}
 };
 
-RequestHandler::RequestHandler (ClientContext context) : m_context (context)
+RequestHandler::RequestHandler (ClientContext& context) : m_context (context)
 {
 }
 

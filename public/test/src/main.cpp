@@ -1,5 +1,6 @@
 #include "BackableReader.hpp"
 #include "testBackableReader.hpp"
+#include "testEasySelect.hpp"
 
 #include <iostream>
 
@@ -8,7 +9,7 @@ main (void)
 {
 	std::cout << "test Start\n";
 
-	testBackableReader();
-
+	// testBackableReader();
+	testEasySelect();
 	std::cout << "All tests passed.\n";
 }

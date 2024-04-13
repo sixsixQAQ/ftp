@@ -5,7 +5,7 @@
 
 class BackableReader {
 public:
-	BackableReader (int fd);
+	BackableReader (int fd = -1);
 	int64_t read (void *buf, size_t size);
 	void unread (void *buf, size_t size);
 	std::string getCached ();

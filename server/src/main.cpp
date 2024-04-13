@@ -17,33 +17,17 @@
 #include <unistd.h>
 
 void
-addToControlConnDispatcher (int connFd, struct sockaddr_in clientAddr)
+addToControlServer (int connFd, struct sockaddr_in clientAddr)
 {
-	static EasySelect ctrlFdDispatcher;
-
-	auto server = new ControlServer (&ctrlFdDispatcher, connFd, clientAddr);
-
-	ctrlFdDispatcher.stop();
-	ctrlFdDispatcher.addFd (connFd, [&] (int fd) { server->notifyDataCome(); });
-	ctrlFdDispatcher.start();
-
-	std::string welcome = "220 FreeFtp-server v1.0\r\n";
-	IOUtil::writen (connFd, welcome.c_str(), welcome.size());
+	static Server *server = new ControlServer();
+	server->addClient (connFd, clientAddr);
 }
 
 void
-addToDataConnDispatcher (int connFd, struct sockaddr_in clientAddr)
+addToDataServer (int connFd, struct sockaddr_in clientAddr)
 {
-	static EasySelect dataFdDispatcher;
-
-	auto server = new ControlServer (&dataFdDispatcher, connFd, clientAddr);
-
-	dataFdDispatcher.stop();
-	dataFdDispatcher.addFd (connFd, [&] (int fd) { server->notifyDataCome(); });
-	dataFdDispatcher.start();
-
-	std::string welcome = "220 FreeFtp-server v1.0\r\n";
-	IOUtil::writen (connFd, welcome.c_str(), welcome.size());
+	static Server *server = new DataServer();
+	server->addClient (connFd, clientAddr);
 }
 
 void
@@ -80,7 +64,7 @@ solveConrtrolConnection ()
 			perror ("accept()");
 			continue;
 		} else {
-			addToControlConnDispatcher (connfd, clientAddr);
+			addToControlServer (connfd, clientAddr);
 		}
 	}
 }
@@ -119,7 +103,7 @@ solveDataConnection ()
 			perror ("accept()");
 			continue;
 		} else {
-			addToControlConnDispatcher (connfd, clientAddr);
+			addToDataServer (connfd, clientAddr);
 		}
 	}
 }

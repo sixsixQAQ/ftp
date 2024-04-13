@@ -8,7 +8,9 @@
 #include "ServerUtil.hpp"
 #include "Toggle.hpp"
 
+#include <algorithm>
 #include <assert.h>
+#include <cassert>
 #include <condition_variable>
 #include <cstring>
 #include <iostream>
@@ -17,94 +19,75 @@
 #include <thread>
 #include <unistd.h>
 
-class ControlServer::Impl {
+class Server::Impl {
 public:
-	Impl (EasySelect *dispatcher, int ctrlFd, struct sockaddr_in addr);
-	void notifyDataCome ();
+	Impl (Server *server)
+	{
+		assert (server);
+		m_server		= server;
+		auto workThread = std::thread (&Impl::threadEntry, this);
+		workThread.detach();
+		dispatcher.waitForStartCompleted();
+	}
 
+	void addClient (int fd, struct sockaddr_in addr)
+	{
+		m_server->preAdd (fd, addr);
+		dispatcher.addFd (fd);
+
+		dispatcher.stop();
+	}
+
+	void removeClient (int fd)
+	{
+		dispatcher.removeFd (fd);
+
+		dispatcher.stop();
+		m_server->postRemove (fd);
+	}
 
 private:
-	EasySelect *m_dispatcher;
-	ClientContext m_context;
 
-	void work ();
-	void stopService ();
+	void threadEntry ()
+	{
+		m_threadId = std::this_thread::get_id();
+		while (true) {
+			std::vector<int> readAbleFds = dispatcher.waitForReadAble();
 
-	std::mutex m_mutex;
-	std::condition_variable m_dataCome;
-	bool m_haveData = false;
-};
-
-ControlServer::Impl::Impl (EasySelect *dispatcher, int ctrlFd, sockaddr_in addr) : m_dispatcher (dispatcher)
-{
-
-	m_context.clientAddr = addr;
-	m_context.PASVToggle.turnOff();
-	m_context.ctrlFd = ctrlFd;
-
-	auto workThread = std::thread (&Impl::work, this);
-	workThread.detach();
-}
-
-void
-ControlServer::Impl::notifyDataCome()
-{
-	std::lock_guard<std::mutex> lock (m_mutex);
-	m_haveData = true;
-	m_dataCome.notify_one();
-}
-
-void
-ControlServer::Impl::work()
-{
-	BackableReader ctrlReader (m_context.ctrlFd);
-	RequestHandler handler (m_context);
-	while (true) {
-		{
-			std::unique_lock<std::mutex> lock (m_mutex);
-			m_dataCome.wait (lock, [&] { return m_haveData; });
-			m_haveData = false;
-		}
-		char buf[4096];
-		int64_t nRead = ctrlReader.read (buf, sizeof (buf));
-		if (nRead == 0) {
-			stopService();
-			return;
-		} else if (nRead < 0) {
-			stopService();
-			setError (strerror (errno));
-			return;
-		} else {
-
-			std::vector<std::string> request = RequestUtil::parseOneFullRequest_v2 (ctrlReader, buf, nRead);
-			if (request.empty())
-				continue;
-			handler.exec (request);
+			std::for_each (readAbleFds.begin(), readAbleFds.end(), [&] (int fd) { m_server->workWhenDataCome (fd); });
 		}
 	}
-}
 
-void
-ControlServer::Impl::stopService()
-{
-	m_context.ctrlFd.close();
-	m_context.dataFd.close();
+	std::thread::id m_threadId;
+	EasySelect dispatcher;
+	Server *m_server;
+};
 
-	m_dispatcher->stop();
-	m_dispatcher->removeFd (m_context.ctrlFd);
-	m_dispatcher->start();
-}
-
-////////////////////////////////////////////////////////////////////////////
-ControlServer::ControlServer (EasySelect *dispatcher, int ctrlFd, sockaddr_in addr) :
-	m_pImpl (std::make_shared<Impl> (dispatcher, ctrlFd, addr))
+Server::Server() : m_pImpl (std::make_shared<Impl> (this))
 {
 	assert (m_pImpl);
 }
 
 void
-ControlServer::notifyDataCome()
+Server::addClient (int fd, sockaddr_in addr)
 {
 	assert (m_pImpl);
-	return m_pImpl->notifyDataCome();
+	m_pImpl->addClient (fd, addr);
+}
+
+void
+Server::removeClient (int fd)
+{
+	assert (m_pImpl);
+	m_pImpl->removeClient (fd);
+}
+
+void
+Server::preAdd (int fd, sockaddr_in addr)
+{
+}
+
+void
+Server::postRemove (int fd)
+{
 }

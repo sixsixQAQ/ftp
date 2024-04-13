@@ -10,11 +10,11 @@
 bool
 SysUtil::authenticate (const std::string &username, const std::string &password)
 {
-	struct spwd *sp;
-	sp = getspnam (username.c_str());
+	struct passwd *sp;
+	sp = getpwnam (username.c_str());
 	if (sp != NULL) {
 		// 比较用户提供的密码与系统中存储的密码哈希值
-		return strcmp (crypt (password.c_str(), sp->sp_pwdp), sp->sp_pwdp) == 0;
+		return strcmp (crypt (password.c_str(), sp->pw_passwd), sp->pw_passwd) == 0;
 	}
 	return false;
 }

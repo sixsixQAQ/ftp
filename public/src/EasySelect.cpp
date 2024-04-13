@@ -3,7 +3,10 @@
 #include "BaseUtil.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <cassert>
+#include <condition_variable>
+#include <iostream>
 #include <mutex>
 #include <stdexcept>
 #include <string.h>
@@ -13,133 +16,106 @@
 
 class EasySelect::Impl {
 public:
+	Impl()
+	{
+		int pipeFds[2];
+		if (pipe (pipeFds) == -1) {
+			setError (strerror (errno));
+			return;
+		}
+		m_pipeRead	= pipeFds[0];
+		m_pipeWrite = pipeFds[1];
+	}
 
-	Impl (bool startNow);
-	~Impl();
-	void start ();
-	void addFd (int fd, Callback callback, bool withLock = true);
-	void removeFd (int fd, bool withLock = true);
+	~Impl()
+	{
+		::close (m_pipeRead);
+		::close (m_pipeWrite);
+	}
+
+	std::vector<int> waitForReadAble ();
+	void addFd (int fd);
+	void removeFd (int fd);
 	void stop ();
-
+	void waitForStartCompleted ();
+	void waitForStopCompleted ();
 private:
-	std::vector<int> waitForReadable ();
 	std::vector<int> m_fds;
+	std::mutex m_fdsMutex;
+	std::mutex m_notifyMutex;
 
-	std::unordered_map<int, Callback> m_callbackMap;
-	std::thread m_workThread;
-	std::mutex m_mutex;
+	int m_pipeRead;
+	int m_pipeWrite;
 
-	bool m_isRunning = false;
-	std::pair<int, int> m_pipe;
-	void openPipe (bool withLock);
-	void closePipe (bool wihLock);
-	bool m_shouldThreadReturn = false;
+	std::condition_variable m_startCompleted;
+	std::condition_variable m_stopFromPipeCond;
+	bool m_isWaiting	= false;
+	bool m_stopFromPipe = false;
 };
 
 void
-EasySelect::Impl::addFd (int fd, Callback callback, bool withLock)
+EasySelect::Impl::addFd (int fd)
 {
-	std::unique_lock<std::mutex> lock (m_mutex, std::defer_lock);
-	if (withLock)
-		lock.lock();
+	std::lock_guard<std::mutex> lock (m_fdsMutex);
 	m_fds.emplace_back (fd);
-	m_callbackMap.insert ({fd, callback});
 }
 
 void
-EasySelect::Impl::removeFd (int fd, bool withLock)
+EasySelect::Impl::removeFd (int fd)
 {
-	std::unique_lock<std::mutex> lock (m_mutex, std::defer_lock);
-	if (withLock)
-		lock.lock();
-	m_fds.erase (std::find (m_fds.begin(), m_fds.end(), fd));
-	m_callbackMap.erase (fd);
-}
-
-EasySelect::Impl::Impl (bool startNow)
-{
-	if (startNow) {
-		start();
-	}
-}
-
-EasySelect::Impl::~Impl()
-{
-	stop();
-}
-
-void
-EasySelect::Impl::start()
-{
-	std::lock_guard<std::mutex> lock (m_mutex);
-	if (m_isRunning)
+	std::lock_guard<std::mutex> lock (m_fdsMutex);
+	auto fdIt = std::find (m_fds.begin(), m_fds.end(), fd);
+	if (fdIt == m_fds.end())
 		return;
-	openPipe (false);
-	m_workThread = std::thread (
-		[] (Impl *selector, const std::unordered_map<int, Callback> &map, bool &shouldReturn) {
-			while (true) {
-
-				std::vector<int> fds = selector->waitForReadable();
-
-				for (auto fd : fds) {
-					auto callbackIt = map.find (fd);
-					assert (callbackIt != map.end() && "确保map和vector中fd同步");
-					if (!callbackIt->second)
-						continue;
-
-					callbackIt->second (fd);
-					if (shouldReturn) {
-						return;
-					}
-				}
-			}
-		},
-		this,
-		std::ref (m_callbackMap),
-		std::ref (m_shouldThreadReturn)
-	);
-	m_isRunning = true;
+	m_fds.erase (fdIt);
 }
 
 void
 EasySelect::Impl::stop()
 {
-	std::lock_guard<std::mutex> lock (m_mutex);
-	if (m_isRunning == false)
-		return;
+	char ANY_CHAR = 0;
+	IOUtil::writen (m_pipeWrite, &ANY_CHAR, 1);
+}
 
-	if (m_workThread.joinable()) {
-		char ANY_CHAR = 0;
-		IOUtil::writen (m_pipe.second, &ANY_CHAR, sizeof (ANY_CHAR));
-		m_workThread.join();
-		closePipe (false);
-	}
-	m_isRunning = false;
+void
+EasySelect::Impl::waitForStartCompleted()
+{
+	std::mutex mutex;
+	std::unique_lock<std::mutex> lock (mutex);
+	m_startCompleted.wait (lock, [&] { return m_isWaiting == false; });
+}
+
+void
+EasySelect::Impl::waitForStopCompleted()
+{
+	std::unique_lock<std::mutex> lock (m_notifyMutex);
+	m_stopFromPipeCond.wait (lock, [&] { return m_stopFromPipe == true; });
+	m_stopFromPipe = false;
 }
 
 std::vector<int>
-EasySelect::Impl::waitForReadable()
+EasySelect::Impl::waitForReadAble()
 {
 	fd_set fdSet;
 	FD_ZERO (&fdSet);
-
-	assert (m_fds.size() != 0 && "至少应有管道fd");
-	assert (m_fds.size() == m_callbackMap.size() && "确保map和vector中fd同步");
-
 	int fd_limits = -1;
 	std::for_each (m_fds.begin(), m_fds.end(), [&] (int fd) {
 		FD_SET (fd, &fdSet);
 		fd_limits = std::max (fd_limits, fd);
 	});
-
+	FD_SET (m_pipeRead, &fdSet); //把管道读端放进去
+	fd_limits = std::max (fd_limits, m_pipeRead);
 	++fd_limits;
-
+	{
+		m_isWaiting = true;
+		m_startCompleted.notify_one();
+	}
 	int nReadAble = ::select (fd_limits, &fdSet, NULL, NULL, NULL);
 	if (nReadAble == -1) {
 		setError (strerror (errno));
 		return {};
 	}
-
+	m_isWaiting = false;
 	std::vector<int> ret;
 	std::for_each (m_fds.begin(), m_fds.end(), [&] (int fd) {
 		if (FD_ISSET (fd, &fdSet)) {
@@ -147,66 +123,43 @@ EasySelect::Impl::waitForReadable()
 		}
 	});
 
-	return ret;
-}
-
-void
-EasySelect::Impl::openPipe (bool withLock)
-{
-	m_shouldThreadReturn = false;
-	int pipeFds[2];
-	if (pipe (pipeFds) == -1) {
-		setError (strerror (errno));
-		return;
+	if (FD_ISSET (m_pipeRead, &fdSet)) {
+		std::lock_guard<std::mutex> lock (m_notifyMutex);
+		m_stopFromPipe = true;
+		m_stopFromPipeCond.notify_one();
+		char ANY_CHAR;
+		IOUtil::readn (m_pipeRead, &ANY_CHAR, 1);
 	}
-	m_pipe = std::pair<int, int> (pipeFds[0], pipeFds[1]);
 
-
-	addFd (
-		m_pipe.first,
-		[&] (int fd) {
-			char ANY_CHAR;
-			IOUtil::readn (fd, &ANY_CHAR, 1);
-			m_shouldThreadReturn = true;
-		},
-		withLock
-	);
-}
-
-void
-EasySelect::Impl::closePipe (bool withLock)
-{
-	removeFd (m_pipe.first, withLock);
-	::close (m_pipe.first);
-	::close (m_pipe.second);
+	return ret;
 }
 
 ///////////////////////////////////////////////////////////
 
-EasySelect::EasySelect (bool start) : m_pImpl (std::make_shared<Impl> (start))
+EasySelect::EasySelect() : m_pImpl (std::make_shared<Impl>())
 {
 	assert (m_pImpl);
 }
 
-void
-EasySelect::start()
+std::vector<int>
+EasySelect::waitForReadAble()
 {
 	assert (m_pImpl);
-	return m_pImpl->start();
+	return m_pImpl->waitForReadAble();
 }
 
 void
-EasySelect::addFd (int fd, Callback callback)
+EasySelect::waitForStartCompleted()
 {
 	assert (m_pImpl);
-	return m_pImpl->addFd (fd, callback);
+	return m_pImpl->waitForStartCompleted();
 }
 
 void
-EasySelect::removeFd (int fd)
+EasySelect::waitForStopCompleted()
 {
 	assert (m_pImpl);
-	return m_pImpl->removeFd (fd);
+	return m_pImpl->waitForStopCompleted();
 }
 
 void
@@ -214,4 +167,18 @@ EasySelect::stop()
 {
 	assert (m_pImpl);
 	return m_pImpl->stop();
+}
+
+void
+EasySelect::addFd (int fd)
+{
+	assert (m_pImpl);
+	return m_pImpl->addFd (fd);
+}
+
+void
+EasySelect::removeFd (int fd)
+{
+	assert (m_pImpl);
+	return m_pImpl->removeFd (fd);
 }

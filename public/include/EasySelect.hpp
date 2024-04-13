@@ -8,14 +8,15 @@
 
 class EasySelect : public ErrorUtil {
 public:
-	using Callback = std::function<void (int fd)>;
-
-	EasySelect (bool start = true);
-	void start ();
-	void addFd (int fd, Callback callback);
-	void removeFd (int fd);
+	EasySelect();
+	std::vector<int> waitForReadAble ();
 	void stop ();
 
+	void waitForStartCompleted ();
+	void waitForStopCompleted ();
+
+	void addFd (int fd);
+	void removeFd (int fd);
 private:
 	class Impl;
 	std::shared_ptr<Impl> m_pImpl = nullptr;

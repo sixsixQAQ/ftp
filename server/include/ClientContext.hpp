@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AbstractFd.hpp"
+#include "BackableReader.hpp"
 #include "Toggle.hpp"
 
 #include <netinet/in.h>
@@ -9,6 +10,7 @@
 struct ClientContext {
 	ControlFd ctrlFd = -1;
 	DataFd dataFd	 = -1;
+	BackableReader ctrlReader;
 	Toggle PASVToggle;
 	struct sockaddr_in clientAddr;
 

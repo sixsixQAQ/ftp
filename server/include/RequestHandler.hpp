@@ -8,8 +8,8 @@
 
 class RequestHandler {
 public:
-	RequestHandler (ClientContext context);
+	RequestHandler (ClientContext &context);
 	void exec (std::vector<std::string> requestArgs);
 private:
-	ClientContext m_context;
+	ClientContext &m_context;
 };
