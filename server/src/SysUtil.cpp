@@ -29,3 +29,23 @@ SysUtil::getHomeOf (const std::string &username)
 	}
 	return pw->pw_dir;
 }
+
+std::string
+SysUtil::listDir (const std::string &path)
+{
+	FILE *inStream = popen ("ls -l", "r");
+	if (inStream == nullptr) {
+		return "";
+	}
+
+	std::string ret;
+	char buf[4096];
+	while (1) {
+		if (fgets (buf, sizeof (buf), inStream) == NULL) {
+			break;
+		} else
+			ret += buf;
+	}
+	pclose (inStream);
+	return ret;
+}

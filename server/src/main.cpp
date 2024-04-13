@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <condition_variable>
 #include <cstring>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -24,88 +25,55 @@ addToControlServer (int connFd, struct sockaddr_in clientAddr)
 }
 
 void
-addToDataServer (int connFd, struct sockaddr_in clientAddr)
+whileConnectionCome (uint16_t port, std::function<void (int connFd, struct sockaddr_in clientAddr)> callback)
 {
-	static Server *server = new DataServer();
-	server->addClient (connFd, clientAddr);
+	struct sockaddr_in servAddr;
+	servAddr.sin_family		 = AF_INET;
+	servAddr.sin_port		 = htons (port);
+	servAddr.sin_addr.s_addr = INADDR_ANY;
+
+	int listenFd = socket (AF_INET, SOCK_STREAM, 0);
+	if (listenFd == -1) {
+		perror ("socket()");
+		return;
+	}
+
+	if (bind (listenFd, (struct sockaddr *)&servAddr, sizeof (servAddr)) == -1) {
+		close (listenFd);
+		perror ("bind()");
+		return;
+	}
+	constexpr int LISTEN_QUEUE_SIZE = 10;
+	if (listen (listenFd, LISTEN_QUEUE_SIZE) == -1) {
+		close (listenFd);
+		perror ("listen()");
+		return;
+	}
+	struct sockaddr_in clientAddr;
+	socklen_t clientAddrLen;
+	while (1) {
+		int connfd = accept (listenFd, (struct sockaddr *)&clientAddr, &clientAddrLen);
+		if (connfd == -1) {
+			perror ("accept()");
+			continue;
+		} else {
+			callback (connfd, clientAddr);
+		}
+	}
 }
 
 void
 solveConrtrolConnection ()
 {
-	struct sockaddr_in servAddr;
-	servAddr.sin_family		 = AF_INET;
-	servAddr.sin_port		 = htons (21);
-	servAddr.sin_addr.s_addr = INADDR_ANY;
-
-	int listenFd = socket (AF_INET, SOCK_STREAM, 0);
-	if (listenFd == -1) {
-		perror ("socket()");
-		return;
-	}
-
-	if (bind (listenFd, (struct sockaddr *)&servAddr, sizeof (servAddr)) == -1) {
-		close (listenFd);
-		perror ("bind()");
-		return;
-	}
-	constexpr int LISTEN_QUEUE_SIZE = 10;
-	if (listen (listenFd, LISTEN_QUEUE_SIZE) == -1) {
-		close (listenFd);
-		perror ("listen()");
-		return;
-	}
-
-	struct sockaddr_in clientAddr;
-	socklen_t clientAddrLen;
-	while (1) {
-		int connfd = accept (listenFd, (struct sockaddr *)&clientAddr, &clientAddrLen);
-		if (connfd == -1) {
-			perror ("accept()");
-			continue;
-		} else {
-			addToControlServer (connfd, clientAddr);
-		}
-	}
+	whileConnectionCome (21, addToControlServer);
 }
 
 void
 solveDataConnection ()
 {
-	struct sockaddr_in servAddr;
-	servAddr.sin_family		 = AF_INET;
-	servAddr.sin_port		 = htons (65533);
-	servAddr.sin_addr.s_addr = INADDR_ANY;
-
-	int listenFd = socket (AF_INET, SOCK_STREAM, 0);
-	if (listenFd == -1) {
-		perror ("socket()");
-		return;
-	}
-
-	if (bind (listenFd, (struct sockaddr *)&servAddr, sizeof (servAddr)) == -1) {
-		close (listenFd);
-		perror ("bind()");
-		return;
-	}
-	constexpr int LISTEN_QUEUE_SIZE = 10;
-	if (listen (listenFd, LISTEN_QUEUE_SIZE) == -1) {
-		close (listenFd);
-		perror ("listen()");
-		return;
-	}
-
-	struct sockaddr_in clientAddr;
-	socklen_t clientAddrLen;
-	while (1) {
-		int connfd = accept (listenFd, (struct sockaddr *)&clientAddr, &clientAddrLen);
-		if (connfd == -1) {
-			perror ("accept()");
-			continue;
-		} else {
-			addToDataServer (connfd, clientAddr);
-		}
-	}
+	whileConnectionCome (65533, [] (int connFd, struct sockaddr_in clientAddr) {
+		DataServer::instance().addClient (connFd, clientAddr);
+	});
 }
 
 int

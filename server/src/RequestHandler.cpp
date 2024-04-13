@@ -1,6 +1,7 @@
 #include "RequestHandler.hpp"
 
 #include "FTPUtil.hpp"
+#include "Server.hpp"
 #include "SysUtil.hpp"
 
 #include <functional>
@@ -11,7 +12,7 @@ struct Handlers {
 
 	static void USER_handler (ClientContext &context, const std::vector<std::string> args);
 	static void PASS_handler (ClientContext &context, const std::vector<std::string> args);
-	// static void LIST_handler(ClientContext &context, const std::vector<std::string> args);
+	static void LIST_handler (ClientContext &context, const std::vector<std::string> args);
 	static void PWD_handler (ClientContext &context, const std::vector<std::string> args);
 	static void QUIT_handler (ClientContext &context, const std::vector<std::string> args);
 	static void PASV_handler (ClientContext &context, const std::vector<std::string> args);
@@ -24,12 +25,13 @@ struct Handlers {
 			{"PWD", PWD_handler},
 			{"QUIT", QUIT_handler},
 			{"PASV", PASV_handler},
+			{"LIST", LIST_handler},
 		};
 		return handlerMap;
 	}
 };
 
-RequestHandler::RequestHandler (ClientContext& context) : m_context (context)
+RequestHandler::RequestHandler (ClientContext &context) : m_context (context)
 {
 }
 
@@ -73,6 +75,22 @@ Handlers::PASS_handler (ClientContext &context, const std::vector<std::string> a
 }
 
 void
+Handlers::LIST_handler (ClientContext &context, const std::vector<std::string> args)
+{
+	std::string result;
+	if (args.size() == 1) {
+		result = SysUtil::listDir (".");
+	} else if (args.size() == 2) {
+		result = SysUtil::listDir (args[1]);
+	} else {
+		return;
+	}
+	FTPUtil::sendCmd (context.ctrlFd, {"150", "Here comes the directory listing."});
+	DataServer::instance().sendOnly (context.dataFd, result);
+	FTPUtil::sendCmd (context.ctrlFd, {"226", "Directory send OK."});
+}
+
+void
 Handlers::PWD_handler (ClientContext &context, const std::vector<std::string> args)
 {
 	if (args.size() != 1)
@@ -101,6 +119,7 @@ Handlers::PASV_handler (ClientContext &context, const std::vector<std::string> a
 	if (args.size() != 1)
 		return;
 	if (context.isLogined) {
-		FTPUtil::sendCmd (context.ctrlFd, {"227", "Entering Passive Mode (139,199,176,107,159,126)"});
+		// FTPUtil::sendCmd (context.ctrlFd, {"227", "Entering Passive Mode (139,199,176,107,255,253)"});
+		FTPUtil::sendCmd (context.ctrlFd, {"227", "Entering Passive Mode (127,0,0,1,255,253)"});
 	}
 }
