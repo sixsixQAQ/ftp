@@ -131,8 +131,7 @@ Handlers::PASV_handler (ClientContext &context, const std::vector<std::string> a
 			uint8_t headByte	 = ((uint8_t *)&port)[1];
 			uint8_t tailByte	 = ((uint8_t *)&port)[0];
 			std::string addrInfo = std::string ("Entering Passive Mode (139,199,176,107,") + std::to_string (headByte) +
-								   "," + std::to_string (tailByte);
-			+").";
+								   "," + std::to_string (tailByte) + ").";
 			FTPUtil::sendCmd (context.ctrlFd, {"227", addrInfo});
 			std::thread acceptThread = std::thread ([&] {
 				int dataFd	   = accept (listenFd, nullptr, nullptr);
