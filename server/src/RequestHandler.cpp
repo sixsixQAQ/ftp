@@ -86,8 +86,8 @@ Handlers::LIST_handler (ClientContext &context, const std::vector<std::string> a
 		return;
 	}
 	FTPUtil::sendCmd (context.ctrlFd, {"150", "Here comes the directory listing."});
-	DataServer::instance().sendOnly (context.dataFd, result);
-	DataServer::instance().removeClient (context.dataFd);
+	IOUtil::writen (context.dataFd, result.c_str(), result.size());
+
 	context.dataFd.close();
 	FTPUtil::sendCmd (context.ctrlFd, {"226", "Directory send OK."});
 }
@@ -121,7 +121,27 @@ Handlers::PASV_handler (ClientContext &context, const std::vector<std::string> a
 	if (args.size() != 1)
 		return;
 	if (context.isLogined) {
-		FTPUtil::sendCmd (context.ctrlFd, {"227", "Entering Passive Mode (139,199,176,107,255,253)."});
+		NetUtil::withPortBind (0, [&] (int listenFd, struct sockaddr_in unused) {
+			(void)unused;
+
+			struct sockaddr_in servAddr;
+			socklen_t addrLen;
+			getsockname (listenFd, (struct sockaddr *)&servAddr, &addrLen);
+			uint16_t port		 = ntohs (servAddr.sin_port);
+			uint8_t headByte	 = ((uint8_t *)&port)[1];
+			uint8_t tailByte	 = ((uint8_t *)&port)[0];
+			std::string addrInfo = std::string ("Entering Passive Mode (139,199,176,107,") + std::to_string (headByte) +
+								   "," + std::to_string (tailByte);
+			+").";
+			FTPUtil::sendCmd (context.ctrlFd, {"227", addrInfo});
+			std::thread acceptThread = std::thread ([&] {
+				int dataFd	   = accept (listenFd, nullptr, nullptr);
+				context.dataFd = dataFd;
+			});
+			acceptThread.join();
+		});
+
+		// FTPUtil::sendCmd (context.ctrlFd, {"227", "Entering Passive Mode (139,199,176,107,255,253)."});
 		// FTPUtil::sendCmd (context.ctrlFd, {"227", "Entering Passive Mode (127,0,0,1,255,253)."});
 	}
 }

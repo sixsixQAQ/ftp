@@ -21,6 +21,8 @@ struct NetUtil : public ErrorUtil {
 	);
 	static std::string domainToIp (const std::string &domain);
 
+	static void withPortBind (uint16_t port, std::function<void (int listenFd, struct sockaddr_in servAddr)> callback);
+
 private:
 	static void syncFile (int inFd, int outFd, std::function<void (size_t syncedSize)> callback = nullptr);
 };

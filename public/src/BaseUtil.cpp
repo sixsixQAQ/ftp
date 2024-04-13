@@ -147,6 +147,34 @@ NetUtil::domainToIp (const std::string &domain)
 }
 
 void
+NetUtil::withPortBind (uint16_t port, std::function<void (int listenFd, struct sockaddr_in servAddr)> callback)
+{
+	struct sockaddr_in servAddr;
+	servAddr.sin_family		 = AF_INET;
+	servAddr.sin_port		 = htons (port);
+	servAddr.sin_addr.s_addr = INADDR_ANY;
+
+	int listenFd = socket (AF_INET, SOCK_STREAM, 0);
+	if (listenFd == -1) {
+		perror ("socket()");
+		return;
+	}
+
+	if (bind (listenFd, (struct sockaddr *)&servAddr, sizeof (servAddr)) == -1) {
+		close (listenFd);
+		perror ("bind()");
+		return;
+	}
+	constexpr int LISTEN_QUEUE_SIZE = 10;
+	if (listen (listenFd, LISTEN_QUEUE_SIZE) == -1) {
+		close (listenFd);
+		perror ("listen()");
+		return;
+	}
+	callback (listenFd, servAddr);
+}
+
+void
 NetUtil::syncFile (int inFd, int outFd, std::function<void (size_t syncedSize)> callback)
 {
 	size_t syncedSize = 0;
