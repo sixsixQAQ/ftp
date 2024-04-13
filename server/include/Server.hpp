@@ -60,8 +60,7 @@ public:
 
 	void sendOnly (int fd, const std::string &text)
 	{
-		std::thread th ([&] { IOUtil::writen (fd, text.c_str(), text.length()); });
-		th.join();
+		IOUtil::writen (fd, text.c_str(), text.length());
 	}
 
 	void addDownloadTask (int fd, const std::string &localPath)
