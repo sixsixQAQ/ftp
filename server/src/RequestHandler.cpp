@@ -87,6 +87,8 @@ Handlers::LIST_handler (ClientContext &context, const std::vector<std::string> a
 	}
 	FTPUtil::sendCmd (context.ctrlFd, {"150", "Here comes the directory listing."});
 	DataServer::instance().sendOnly (context.dataFd, result);
+	DataServer::instance().removeClient (context.dataFd);
+	context.dataFd.close();
 	FTPUtil::sendCmd (context.ctrlFd, {"226", "Directory send OK."});
 }
 
