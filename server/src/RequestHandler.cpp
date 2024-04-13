@@ -119,7 +119,7 @@ Handlers::PASV_handler (ClientContext &context, const std::vector<std::string> a
 	if (args.size() != 1)
 		return;
 	if (context.isLogined) {
-		// FTPUtil::sendCmd (context.ctrlFd, {"227", "Entering Passive Mode (139,199,176,107,255,253)"});
-		FTPUtil::sendCmd (context.ctrlFd, {"227", "Entering Passive Mode (127,0,0,1,255,253)"});
+		FTPUtil::sendCmd (context.ctrlFd, {"227", "Entering Passive Mode (139,199,176,107,255,253)."});
+		// FTPUtil::sendCmd (context.ctrlFd, {"227", "Entering Passive Mode (127,0,0,1,255,253)."});
 	}
 }
