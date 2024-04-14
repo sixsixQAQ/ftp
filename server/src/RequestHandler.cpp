@@ -21,6 +21,8 @@ struct Handlers {
 	static void QUIT_handler (ClientContext &context, const std::vector<std::string> args);
 	static void PASV_handler (ClientContext &context, const std::vector<std::string> args);
 	static void TYPE_handler (ClientContext &context, const std::vector<std::string> args);
+	static void CDUP_handler (ClientContext &context, const std::vector<std::string> args);
+	static void CWD_handler (ClientContext &context, const std::vector<std::string> args);
 
 	static std::unordered_map<std::string, Handler> &getHandlerMap ()
 	{
@@ -31,7 +33,10 @@ struct Handlers {
 			{"QUIT", QUIT_handler},
 			{"PASV", PASV_handler},
 			{"LIST", LIST_handler},
-			{"TYPE", TYPE_handler}};
+			{"TYPE", TYPE_handler},
+			{"CDUP", CDUP_handler},
+			{"CWD", CWD_handler},
+		};
 		return handlerMap;
 	}
 };
@@ -187,5 +192,36 @@ Handlers::TYPE_handler (ClientContext &context, const std::vector<std::string> a
 		return;
 	} else {
 		FTPUtil::sendCmd (context.ctrlFd, {"501", "Unrecognised TYPE command."});
+	}
+}
+
+void
+Handlers::CDUP_handler (ClientContext &context, const std::vector<std::string> args)
+{
+	if (!context.isLogined)
+		return;
+	if (args.size() != 1) {
+		FTPUtil::sendCmd (context.ctrlFd, {"501", "Invalid parameter."});
+		return;
+	} else {
+		if (SysUtil::cdup (context.currDir))
+			FTPUtil::sendCmd (context.ctrlFd, {"250", "Directory changed to " + context.currDir});
+		else
+			FTPUtil::sendCmd (context.ctrlFd, {"550", "Failed to change directory."});
+	}
+}
+
+void
+Handlers::CWD_handler (ClientContext &context, const std::vector<std::string> args)
+{
+	if (!context.isLogined)
+		return;
+	if (args.size() != 2) {
+		FTPUtil::sendCmd (context.ctrlFd, {"501", "Invalid parameter."});
+	} else {
+		if (SysUtil::cd (context.currDir, args[1]))
+			FTPUtil::sendCmd (context.ctrlFd, {"250", "Directory changed to " + context.currDir});
+		else
+			FTPUtil::sendCmd (context.ctrlFd, {"550", "Failed to change directory."});
 	}
 }

@@ -1,6 +1,7 @@
 #include "SysUtil.hpp"
 
 #include <cstring>
+#include <limits.h>
 #include <pwd.h>
 #include <shadow.h>
 #include <sys/types.h>
@@ -62,4 +63,36 @@ SysUtil::listDir (const std::string &path)
 	}
 	pclose (inStream);
 	return ret;
+}
+
+bool
+SysUtil::cdup (std::string &currDir)
+{
+	// char buf[PATH_MAX];
+	// if (realpath (currDir.c_str(), buf) == nullptr) {
+	// 	return false;
+	// }
+	// currDir = buf;
+	// return true;
+	return SysUtil::cd (currDir, "..");
+}
+
+bool
+SysUtil::cd (std::string &currDir, const std::string &path)
+{
+	if (path.size() == 0)
+		return true;
+	std::string fullPath;
+	if (path[0] == '/') {
+		fullPath = path;
+	} else {
+		fullPath = currDir + "/" + path;
+	}
+
+	char buf[PATH_MAX];
+	if (realpath (fullPath.c_str(), buf) == nullptr) {
+		return false;
+	}
+	currDir = buf;
+	return true;
 }
