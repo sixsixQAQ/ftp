@@ -84,7 +84,7 @@ Handlers::LIST_handler (ClientContext &context, const std::vector<std::string> a
 {
 	std::string result;
 	if (args.size() == 1) {
-		result = SysUtil::listDir (".");
+		result = SysUtil::listDir (context.currDir);
 	} else if (args.size() == 2) {
 		result = SysUtil::listDir (args[1]);
 	} else {
