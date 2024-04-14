@@ -174,8 +174,10 @@ Handlers::MKD_handler (ClientContext &context, const std::vector<std::string> ar
 		FTPUtil::sendCmd (context.ctrlFd, {"501", "Parameter error."});
 		return;
 	}
-	if (SysUtil::createDir (SysUtil::realAbsoutePath (context.currDir, args[1])))
-		FTPUtil::sendCmd (context.ctrlFd, {"257", "Directory created."});
+	if (SysUtil::createDir (SysUtil::absolutePath (context.currDir, args[1])))
+		FTPUtil::sendCmd (
+			context.ctrlFd, {"257", "\"" + SysUtil::realAbsoutePath (context.currDir, args[1]) + "\" created."}
+		);
 	else
 		FTPUtil::sendCmd (context.ctrlFd, {"550", "Directory creation failed."});
 }
@@ -190,7 +192,9 @@ Handlers::RMD_handler (ClientContext &context, const std::vector<std::string> ar
 		return;
 	}
 	if (SysUtil::removeDir (SysUtil::realAbsoutePath (context.currDir, args[1])))
-		FTPUtil::sendCmd (context.ctrlFd, {"250", "Directory removed."});
+		FTPUtil::sendCmd (
+			context.ctrlFd, {"250", "\"" + SysUtil::realAbsoutePath (context.currDir, args[1]) + "\"removed."}
+		);
 	else
 		FTPUtil::sendCmd (context.ctrlFd, {"550", "Directory removal failed."});
 }
