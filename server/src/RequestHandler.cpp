@@ -4,6 +4,7 @@
 #include "Server.hpp"
 #include "SysUtil.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <functional>
 #include <unordered_map>
@@ -17,6 +18,7 @@ struct Handlers {
 	static void PWD_handler (ClientContext &context, const std::vector<std::string> args);
 	static void QUIT_handler (ClientContext &context, const std::vector<std::string> args);
 	static void PASV_handler (ClientContext &context, const std::vector<std::string> args);
+	static void TYPE_handler (ClientContext &context, const std::vector<std::string> args);
 
 	static std::unordered_map<std::string, Handler> &getHandlerMap ()
 	{
@@ -27,7 +29,7 @@ struct Handlers {
 			{"QUIT", QUIT_handler},
 			{"PASV", PASV_handler},
 			{"LIST", LIST_handler},
-		};
+			{"TYPE", TYPE_handler}};
 		return handlerMap;
 	}
 };
@@ -86,6 +88,13 @@ Handlers::LIST_handler (ClientContext &context, const std::vector<std::string> a
 	} else {
 		return;
 	}
+	//转成标准3.4节要求的<CRLF>
+	std::string::size_type pos;
+	while ((pos = result.find ('\n', pos)) != std::string::npos) {
+		result.replace (pos, 1, "\r\n");
+		pos += 2;
+	}
+
 	FTPUtil::sendCmd (context.ctrlFd, {"150", "Here comes the directory listing."});
 	IOUtil::writen (context.dataFd, result.c_str(), result.size());
 
@@ -128,7 +137,7 @@ Handlers::PASV_handler (ClientContext &context, const std::vector<std::string> a
 			struct sockaddr_in servAddr;
 			socklen_t addrLen = sizeof (sockaddr_in);
 			if (getsockname (listenFd, (struct sockaddr *)&servAddr, &addrLen) != 0) {
-				perror ("");
+				return;
 			}
 			uint16_t port		 = ntohs (servAddr.sin_port);
 			uint8_t headByte	 = ((uint8_t *)&port)[1];
@@ -137,6 +146,7 @@ Handlers::PASV_handler (ClientContext &context, const std::vector<std::string> a
 								   "," + std::to_string (tailByte) + ").";
 			FTPUtil::sendCmd (context.ctrlFd, {"227", addrInfo});
 			std::thread acceptThread = std::thread ([&] {
+				// TODO：这里应该加客户端信息检验
 				int dataFd	   = accept (listenFd, nullptr, nullptr);
 				context.dataFd = dataFd;
 			});
@@ -145,5 +155,28 @@ Handlers::PASV_handler (ClientContext &context, const std::vector<std::string> a
 
 		// FTPUtil::sendCmd (context.ctrlFd, {"227", "Entering Passive Mode (139,199,176,107,255,253)."});
 		// FTPUtil::sendCmd (context.ctrlFd, {"227", "Entering Passive Mode (127,0,0,1,255,253)."});
+	}
+}
+
+void
+Handlers::TYPE_handler (ClientContext &context, const std::vector<std::string> args)
+{
+	if (!context.isLogined)
+		return;
+	if (args.size() != 2) {
+		FTPUtil::sendCmd (context.ctrlFd, {"501", "Unrecognised TYPE command."});
+		return;
+	}
+
+	if (args[1] == "I") {
+		FTPUtil::sendCmd (context.ctrlFd, {"200", "Switching to Binary mode."});
+		context.representationType = RepresentationType::BINARY;
+		return;
+	} else if (args[1] == "A") {
+		FTPUtil::sendCmd (context.ctrlFd, {"200", "Switching to ASCII mode."});
+		context.representationType = RepresentationType::ASCII;
+		return;
+	} else {
+		FTPUtil::sendCmd (context.ctrlFd, {"501", "Unrecognised TYPE command."});
 	}
 }
