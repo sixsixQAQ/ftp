@@ -2,6 +2,7 @@
 
 #include "FTPUtil.hpp"
 #include "Server.hpp"
+#include "StrUtil.hpp"
 #include "SysUtil.hpp"
 
 #include <algorithm>
@@ -88,15 +89,17 @@ Handlers::LIST_handler (ClientContext &context, const std::vector<std::string> a
 	} else {
 		return;
 	}
-	//转成标准3.4节要求的<CRLF>
-	std::string::size_type pos = 0;
-	while ((pos = result.find ('\n', pos)) != std::string::npos) {
-		result.replace (pos, 1, "\r\n");
-		pos += 2;
-	}
+	//转成标准3.4节要求的<CRLF>发送
+	std::vector<std::string> items = StrUtil::split (result, "\n");
+	if (items.begin() != items.end())
+		items.erase (items.begin());
 
 	FTPUtil::sendCmd (context.ctrlFd, {"150", "Here comes the directory listing."});
-	IOUtil::writen (context.dataFd, result.c_str(), result.size());
+	// IOUtil::writen (context.dataFd, result.c_str(), result.size());
+
+	std::for_each (items.begin(), items.end(), [&] (const std::string &item) {
+		FTPUtil::sendCmd (context.dataFd.getFd(), {item});
+	});
 
 	context.dataFd.close();
 	FTPUtil::sendCmd (context.ctrlFd, {"226", "Directory send OK."});

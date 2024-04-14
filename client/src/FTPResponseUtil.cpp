@@ -1,5 +1,7 @@
 #include "FTPResponseUtil.hpp"
 
+#include "StrUtil.hpp"
+
 #include <fstream>
 #include <regex>
 #include <sstream>
@@ -53,9 +55,7 @@ private:
 };
 
 void
-FTPResponseUtilImpl::transform (
-	WaitingChar *pCurrState, CharEvent event, WaitingChar *pLastState
-)
+FTPResponseUtilImpl::transform (WaitingChar *pCurrState, CharEvent event, WaitingChar *pLastState)
 {
 	static const StateTransform stateTransMap[] = {
 		{BEG_DIGIT_1, DIGIT, BEG_DIGIT_2},
@@ -150,8 +150,7 @@ FTPResponseUtilImpl::transform (
 		pLastState = &NULL_ABLE;
 
 	for (size_t i = 0; i < sizeof (stateTransMap) / sizeof (stateTransMap[0]); ++i) {
-		if (stateTransMap[i].currState == *pCurrState &&
-			stateTransMap[i].event == event) {
+		if (stateTransMap[i].currState == *pCurrState && stateTransMap[i].event == event) {
 			*pLastState = *pCurrState;
 			*pCurrState = stateTransMap[i].nextState;
 			return;
@@ -159,27 +158,6 @@ FTPResponseUtilImpl::transform (
 	}
 	*pLastState = *pCurrState;
 	*pCurrState = ERROR;
-}
-
-static std::vector<std::string>
-split (const std::string &text, const std::string &delimStr)
-{
-	std::vector<std::string> tokens;
-
-	size_t nextLineBeg = 0;
-	while (true) {
-		size_t nextDelim = text.find (delimStr, nextLineBeg);
-		if (nextDelim == std::string::npos) // no more delim
-		{
-			tokens.emplace_back (text.substr (nextLineBeg));
-			break;
-		} else {
-			tokens.emplace_back (text.substr (nextLineBeg, nextDelim + delimStr.length())
-			);
-			nextLineBeg = nextDelim + delimStr.length();
-		}
-	}
-	return tokens;
 }
 
 std::vector<std::string>
@@ -226,7 +204,7 @@ FAILED:
 	return {};
 
 SUCCEED:
-	return split (response.str(), "\r\n");
+	return StrUtil::split (response.str(), "\r\n");
 }
 
 FTPResponseUtilImpl::CharEvent
@@ -279,15 +257,12 @@ FTPResponseUtil::PASVResponse (ControlFd connFd, std::string &ip, uint16_t &port
 			response = responseVector[0];
 		}
 	}
-	static std::regex pattern (R"I_LOVE_YOU(\((.*?,.*?,.*?,.*?),(.*?),(.*?)\))I_LOVE_YOU"
-	);
+	static std::regex pattern (R"I_LOVE_YOU(\((.*?,.*?,.*?,.*?),(.*?),(.*?)\))I_LOVE_YOU");
 
 	std::string rawIp;
 	std::string headByteStr;
 	std::string tailByteStr;
-	for (std::sregex_iterator it (response.begin(), response.end(), pattern), end_it;
-		 it != end_it;
-		 ++it) {
+	for (std::sregex_iterator it (response.begin(), response.end(), pattern), end_it; it != end_it; ++it) {
 		if ((*it)[1].matched) {
 			rawIp = it->str (1);
 		}
