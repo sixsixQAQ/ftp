@@ -149,3 +149,9 @@ SysUtil::removeDir (const std::string &path)
 {
 	return ::rmdir (path.c_str()) == 0;
 }
+
+bool
+SysUtil::removeFile (const std::string &path)
+{
+	return ::unlink (path.c_str()) == 0;
+}
