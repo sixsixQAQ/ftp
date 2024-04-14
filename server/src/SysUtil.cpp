@@ -4,6 +4,7 @@
 #include <limits.h>
 #include <pwd.h>
 #include <shadow.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -135,4 +136,16 @@ std::string
 SysUtil::realAbsoutePath (const std::string &currDir, const std::string &path)
 {
 	return SysUtil::realPath (SysUtil::absolutePath (currDir, path));
+}
+
+bool
+SysUtil::createDir (const std::string &path)
+{
+	return ::mkdir (path.c_str(), 0755) == 0;
+}
+
+bool
+SysUtil::removeDir (const std::string &path)
+{
+	return ::rmdir (path.c_str()) == 0;
 }

@@ -26,6 +26,8 @@ struct Handlers {
 	static void NLST_handler (ClientContext &context, const std::vector<std::string> args);
 	static void RNFR_handler (ClientContext &context, const std::vector<std::string> args);
 	static void RNTO_handler (ClientContext &context, const std::vector<std::string> args);
+	static void MKD_handler (ClientContext &context, const std::vector<std::string> args);
+	static void RMD_handler (ClientContext &context, const std::vector<std::string> args);
 
 	static std::unordered_map<std::string, Handler> &getHandlerMap ()
 	{
@@ -42,6 +44,9 @@ struct Handlers {
 			{"NLST", NLST_handler},
 			{"RNFR", RNFR_handler},
 			{"RNTO", RNTO_handler},
+			{"MKD", MKD_handler},
+			{"RMD", RMD_handler},
+
 		};
 		return handlerMap;
 	}
@@ -158,6 +163,36 @@ Handlers::RNTO_handler (ClientContext &context, const std::vector<std::string> a
 		FTPUtil::sendCmd (context.ctrlFd, {"550", "Rename failed."});
 
 	context.RNFR_path = context.RNTO_path = "";
+}
+
+void
+Handlers::MKD_handler (ClientContext &context, const std::vector<std::string> args)
+{
+	if (!context.isLogined)
+		return;
+	if (args.size() != 2) {
+		FTPUtil::sendCmd (context.ctrlFd, {"501", "Parameter error."});
+		return;
+	}
+	if (SysUtil::createDir (SysUtil::realAbsoutePath (context.currDir, args[1])))
+		FTPUtil::sendCmd (context.ctrlFd, {"257", "Directory created."});
+	else
+		FTPUtil::sendCmd (context.ctrlFd, {"550", "Directory creation failed."});
+}
+
+void
+Handlers::RMD_handler (ClientContext &context, const std::vector<std::string> args)
+{
+	if (!context.isLogined)
+		return;
+	if (args.size() != 2) {
+		FTPUtil::sendCmd (context.ctrlFd, {"501", "Parameter error."});
+		return;
+	}
+	if (SysUtil::removeDir (SysUtil::realAbsoutePath (context.currDir, args[1])))
+		FTPUtil::sendCmd (context.ctrlFd, {"250", "Directory removed."});
+	else
+		FTPUtil::sendCmd (context.ctrlFd, {"550", "Directory removal failed."});
 }
 
 void
