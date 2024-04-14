@@ -191,10 +191,9 @@ Handlers::RMD_handler (ClientContext &context, const std::vector<std::string> ar
 		FTPUtil::sendCmd (context.ctrlFd, {"501", "Parameter error."});
 		return;
 	}
-	if (SysUtil::removeDir (SysUtil::realAbsoutePath (context.currDir, args[1])))
-		FTPUtil::sendCmd (
-			context.ctrlFd, {"250", "\"" + SysUtil::realAbsoutePath (context.currDir, args[1]) + "\"removed."}
-		);
+	const std::string realAbsPath = SysUtil::realAbsoutePath (context.currDir, args[1]);
+	if (SysUtil::removeDir (realAbsPath))
+		FTPUtil::sendCmd (context.ctrlFd, {"250", "Directory \"" + realAbsPath + "\" was removed."});
 	else
 		FTPUtil::sendCmd (context.ctrlFd, {"550", "Directory removal failed."});
 }
