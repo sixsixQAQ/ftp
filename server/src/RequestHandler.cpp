@@ -23,6 +23,7 @@ struct Handlers {
 	static void TYPE_handler (ClientContext &context, const std::vector<std::string> args);
 	static void CDUP_handler (ClientContext &context, const std::vector<std::string> args);
 	static void CWD_handler (ClientContext &context, const std::vector<std::string> args);
+	static void NLST_handler (ClientContext &context, const std::vector<std::string> args);
 
 	static std::unordered_map<std::string, Handler> &getHandlerMap ()
 	{
@@ -36,6 +37,7 @@ struct Handlers {
 			{"TYPE", TYPE_handler},
 			{"CDUP", CDUP_handler},
 			{"CWD", CWD_handler},
+			{"NLST", NLST_handler},
 		};
 		return handlerMap;
 	}
@@ -95,7 +97,7 @@ Handlers::LIST_handler (ClientContext &context, const std::vector<std::string> a
 	} else {
 		return;
 	}
-	//转成标准3.4节要求的<CRLF>发送
+	//转成RFC959 3.4节要求的<CRLF>发送
 	std::stringstream ss (result);
 	std::vector<std::string> items;
 	std::string buf;
@@ -106,7 +108,6 @@ Handlers::LIST_handler (ClientContext &context, const std::vector<std::string> a
 		items.erase (items.begin());
 
 	FTPUtil::sendCmd (context.ctrlFd, {"150", "Here comes the directory listing."});
-	// IOUtil::writen (context.dataFd, result.c_str(), result.size());
 
 	std::for_each (items.begin(), items.end(), [&] (const std::string &item) {
 		FTPUtil::sendCmd (context.dataFd.getFd(), {item});
@@ -224,4 +225,10 @@ Handlers::CWD_handler (ClientContext &context, const std::vector<std::string> ar
 		else
 			FTPUtil::sendCmd (context.ctrlFd, {"550", "Failed to change directory."});
 	}
+}
+
+void
+Handlers::NLST_handler (ClientContext &context, const std::vector<std::string> args)
+{
+	
 }
