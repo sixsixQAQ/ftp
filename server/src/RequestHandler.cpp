@@ -89,7 +89,7 @@ Handlers::LIST_handler (ClientContext &context, const std::vector<std::string> a
 		return;
 	}
 	//转成标准3.4节要求的<CRLF>
-	std::string::size_type pos;
+	std::string::size_type pos = 0;
 	while ((pos = result.find ('\n', pos)) != std::string::npos) {
 		result.replace (pos, 1, "\r\n");
 		pos += 2;
