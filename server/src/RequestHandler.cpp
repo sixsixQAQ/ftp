@@ -29,6 +29,8 @@ struct Handlers {
 	static void MKD_handler (ClientContext &context, const std::vector<std::string> args);
 	static void RMD_handler (ClientContext &context, const std::vector<std::string> args);
 	static void DELE_handler (ClientContext &context, const std::vector<std::string> args);
+	static void RETR_handler (ClientContext &context, const std::vector<std::string> args);
+	static void STOR_handler (ClientContext &context, const std::vector<std::string> args);
 
 	static std::unordered_map<std::string, Handler> &getHandlerMap ()
 	{
@@ -48,7 +50,8 @@ struct Handlers {
 			{"MKD", MKD_handler},
 			{"RMD", RMD_handler},
 			{"DELE", DELE_handler},
-
+			{"RETR", RETR_handler},
+			{"STOR", STOR_handler},
 		};
 		return handlerMap;
 	}
@@ -214,6 +217,31 @@ Handlers::DELE_handler (ClientContext &context, const std::vector<std::string> a
 		FTPUtil::sendCmd (context.ctrlFd, {"250", "File \"" + args[1] + "\" was removed."});
 	else
 		FTPUtil::sendCmd (context.ctrlFd, {"550", "File removal failed."});
+}
+
+void
+Handlers::RETR_handler (ClientContext &context, const std::vector<std::string> args)
+{
+	if (!context.isLogined)
+		return;
+	if (args.size() != 2) {
+		FTPUtil::sendCmd (context.ctrlFd, {"501", "Parameter error."});
+		return;
+	}
+	std::string realAbsPath = SysUtil::realAbsoutePath (context.currDir, args[1]);
+	if (realAbsPath.empty()) {
+		FTPUtil::sendCmd (context.ctrlFd, {"550", "File not exists."});
+		return;
+	}
+	FTPUtil::sendCmd (context.ctrlFd, {"150", "File status okay; about to open data connection."});
+	NetUtil::syncLocalToRemote (context.dataFd, realAbsPath);
+	FTPUtil::sendCmd (context.ctrlFd, {"226", "226 Transfer complete."});
+	context.ctrlFd.close();
+}
+
+void
+Handlers::STOR_handler (ClientContext &context, const std::vector<std::string> args)
+{
 }
 
 void
