@@ -12,6 +12,7 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <signal.h>
 #include <sstream>
 #include <sys/socket.h>
 #include <thread>
@@ -79,6 +80,7 @@ solveDataConnection ()
 int
 main (void)
 {
+	signal (SIGPIPE, SIG_IGN);
 	std::cout << "FreeFTP-Server v1.0\n";
 	std::thread ctrlThread = std::thread ([] { solveConrtrolConnection(); });
 	// std::thread dataThread = std::thread ([] { solveDataConnection(); });
