@@ -234,7 +234,7 @@ Handlers::RETR_handler (ClientContext &context, const std::vector<std::string> a
 		return;
 	}
 	FTPUtil::sendCmd (context.ctrlFd, {"150", "File status okay; about to open data connection."});
-	// NetUtil::syncLocalToRemote (context.dataFd, realAbsPath);
+	NetUtil::syncLocalToRemote (context.dataFd, realAbsPath);
 	FTPUtil::sendCmd (context.ctrlFd, {"226", "226 Transfer complete."});
 	context.dataFd.close();
 }
