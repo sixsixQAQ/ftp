@@ -128,7 +128,7 @@ SysUtil::absolutePath (const std::string &currDir, const std::string &path)
 bool
 SysUtil::rename (const std::string &oldname, const std::string &newName)
 {
-	return ::rename (oldname.c_str(), oldname.c_str()) == 0;
+	return ::rename (oldname.c_str(), newName.c_str()) == 0;
 }
 
 std::string
