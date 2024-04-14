@@ -251,7 +251,15 @@ Handlers::STOR_handler (ClientContext &context, const std::vector<std::string> a
 		FTPUtil::sendCmd (context.ctrlFd, {"501", "Parameter error."});
 		return;
 	}
-	std::string realAbsPath = SysUtil::absolutePath (context.currDir, args[1]);
+	const std::string absPath = SysUtil::absolutePath (context.currDir, args[1]);
+	if (absPath.empty()) {
+		FTPUtil::sendCmd (context.ctrlFd, {"550", "File creation failed."});
+		return;
+	}
+	FTPUtil::sendCmd (context.ctrlFd, {"150", "File status okay; about to open data connection."});
+	NetUtil::syncRemoteToLocal (context.dataFd, absPath);
+	context.dataFd.close();
+	FTPUtil::sendCmd (context.ctrlFd, {"226", "Transfer complete."});
 }
 
 void
