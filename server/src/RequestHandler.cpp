@@ -9,7 +9,6 @@
 #include <cassert>
 #include <functional>
 #include <sstream>
-#include <unistd.h>
 #include <unordered_map>
 
 struct Handlers {
@@ -122,7 +121,6 @@ Handlers::NLST_handler (ClientContext &context, const std::vector<std::string> a
 	if (items.begin() != items.end())
 		items.erase (items.begin());
 
-	context.waitForPassiveDataConnection();
 	FTPUtil::sendCmd (context.ctrlFd, {"150", "Here comes the directory listing."});
 
 	std::for_each (items.begin(), items.end(), [&] (const std::string &item) {
@@ -236,7 +234,6 @@ Handlers::RETR_handler (ClientContext &context, const std::vector<std::string> a
 		return;
 	}
 	FTPUtil::sendCmd (context.ctrlFd, {"150", "File status okay; about to open data connection."});
-	context.waitForPassiveDataConnection();
 	NetUtil::syncLocalToRemote (context.dataFd, realAbsPath);
 	FTPUtil::sendCmd (context.ctrlFd, {"226", "226 Transfer complete."});
 	context.ctrlFd.close();
@@ -330,20 +327,12 @@ Handlers::PASV_handler (ClientContext &context, const std::vector<std::string> a
 								   "," + std::to_string (tailByte) + ").";
 			FTPUtil::sendCmd (context.ctrlFd, {"227", addrInfo});
 
-
-			int dataFd	   = accept (listenFd, nullptr, nullptr);
-			context.dataFd = dataFd;
-			::close (listenFd);
-			// context.waitForPassiveDataConnection = [&] {
-			// 	int dataFd	   = accept (listenFd, nullptr, nullptr);
-			// 	context.dataFd = dataFd;
-			// 	::close (listenFd);
-			// };
-			context.waitForPassiveDataConnection = [] {};
+			{
+				// TODO:这里应该加错误验证和反馈
+				int dataFd	   = accept (listenFd, nullptr, nullptr);
+				context.dataFd = dataFd;
+			}
 		});
-
-		// FTPUtil::sendCmd (context.ctrlFd, {"227", "Entering Passive Mode (139,199,176,107,255,253)."});
-		// FTPUtil::sendCmd (context.ctrlFd, {"227", "Entering Passive Mode (127,0,0,1,255,253)."});
 	}
 }
 
