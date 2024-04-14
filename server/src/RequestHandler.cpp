@@ -233,7 +233,8 @@ Handlers::RETR_handler (ClientContext &context, const std::vector<std::string> a
 		FTPUtil::sendCmd (context.ctrlFd, {"550", "File not exists."});
 		return;
 	}
-	FTPUtil::sendCmd (context.ctrlFd, {"150", "File status okay; about to open data connection."});
+	// FTPUtil::sendCmd (context.ctrlFd, {"150", "File status okay; about to open data connection."});
+	FTPUtil::sendCmd (context.ctrlFd, {"150", "Opening BINARY mode data connection for Country.mmdb (5656121 bytes)."});
 	NetUtil::syncLocalToRemote (context.dataFd, realAbsPath);
 	FTPUtil::sendCmd (context.ctrlFd, {"226", "226 Transfer complete."});
 	context.dataFd.close();
