@@ -209,7 +209,7 @@ Handlers::DELE_handler (ClientContext &context, const std::vector<std::string> a
 		FTPUtil::sendCmd (context.ctrlFd, {"501", "Parameter error."});
 		return;
 	}
-	const std::string realAbsPath = SysUtil::realAbsoutePath (context.currDir, args[1]));
+	const std::string realAbsPath = SysUtil::realAbsoutePath (context.currDir, args[1]);
 	if (SysUtil::removeFile (realAbsPath))
 		FTPUtil::sendCmd (context.ctrlFd, {"250", "File \"" + args[1] + "\" was removed."});
 	else
