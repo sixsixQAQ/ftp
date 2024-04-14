@@ -214,7 +214,10 @@ NetUtil::syncLocalToRemote (int sockfd, const std::string &localPath, std::funct
 		setError (strerror (errno));
 		return;
 	}
-	syncFile (localFd, sockfd, [&] (size_t syncedSize) { callback (syncedSize); });
+	syncFile (localFd, sockfd, [&] (size_t syncedSize) {
+		if (callback)
+			callback (syncedSize);
+	});
 
 	close (localFd);
 }
