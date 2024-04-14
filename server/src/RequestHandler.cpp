@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cassert>
 #include <functional>
+#include <sstream>
 #include <unordered_map>
 
 struct Handlers {
@@ -90,7 +91,12 @@ Handlers::LIST_handler (ClientContext &context, const std::vector<std::string> a
 		return;
 	}
 	//转成标准3.4节要求的<CRLF>发送
-	std::vector<std::string> items = StrUtil::split (result, "\n");
+	std::stringstream ss (result);
+	std::vector<std::string> items;
+	std::string buf;
+	while (std::getline (ss, buf)) {
+		items.emplace_back (buf);
+	}
 	if (items.begin() != items.end())
 		items.erase (items.begin());
 
