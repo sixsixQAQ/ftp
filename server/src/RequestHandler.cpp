@@ -127,7 +127,7 @@ Handlers::PASV_handler (ClientContext &context, const std::vector<std::string> a
 
 			struct sockaddr_in servAddr;
 			socklen_t addrLen;
-			if (getsockname (listenFd, (struct sockaddr *)&servAddr, &addrLen) !-0) {
+			if (getsockname (listenFd, (struct sockaddr *)&servAddr, &addrLen) !=0) {
 				perror ("");
 			}
 			uint16_t port		 = ntohs (servAddr.sin_port);
