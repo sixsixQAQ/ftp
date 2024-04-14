@@ -16,8 +16,10 @@ struct ClientContext {
 	Toggle PASVToggle;
 	struct sockaddr_in clientAddr;
 	enum RepresentationType representationType = RepresentationType::ASCII;
-	std::string username;
-	std::string password;
-	std::string currDir;
-	bool isLogined = false;
+	std::string username					   = "";
+	std::string password					   = "";
+	std::string currDir						   = "";
+	std::string RNFR_path					   = "";
+	std::string RNTO_path					   = "";
+	bool isLogined							   = false;
 };

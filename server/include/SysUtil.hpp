@@ -9,6 +9,9 @@ struct SysUtil : public ErrorUtil {
 	static std::string listDirNameOnly (const std::string &path);
 	static bool cdup (std::string &currDir);
 	static bool cd (std::string &currDir, const std::string &path);
+	static std::string realPath (const std::string &path);
+	static std::string absolutePath (const std::string &currDir, const std::string &path);
+	static bool rename(const std::string&, const std::string&);
 private:
 	static std::string getShellResult (const std::string &cmd);
 };

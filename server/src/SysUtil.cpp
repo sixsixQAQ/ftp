@@ -82,31 +82,51 @@ SysUtil::listDirNameOnly (const std::string &path)
 bool
 SysUtil::cdup (std::string &currDir)
 {
-	// char buf[PATH_MAX];
-	// if (realpath (currDir.c_str(), buf) == nullptr) {
-	// 	return false;
-	// }
-	// currDir = buf;
-	// return true;
 	return SysUtil::cd (currDir, "..");
 }
 
 bool
 SysUtil::cd (std::string &currDir, const std::string &path)
 {
-	if (path.size() == 0)
+	std::string fullPath = SysUtil::absolutePath (currDir, path);
+	if (fullPath.empty()) {
 		return true;
+	}
+
+	std::string realpath = SysUtil::realPath (fullPath);
+	if (realpath.empty()) {
+		return false;
+	}
+	currDir = realpath;
+	return true;
+}
+
+std::string
+SysUtil::realPath (const std::string &path)
+{
+	char buf[PATH_MAX];
+	if (realpath (path.c_str(), buf) == nullptr) {
+		return "";
+	}
+	return buf;
+}
+
+std::string
+SysUtil::absolutePath (const std::string &currDir, const std::string &path)
+{
+	if (path.size() == 0)
+		return "";
 	std::string fullPath;
 	if (path[0] == '/') {
 		fullPath = path;
 	} else {
 		fullPath = currDir + "/" + path;
 	}
+	return fullPath;
+}
 
-	char buf[PATH_MAX];
-	if (realpath (fullPath.c_str(), buf) == nullptr) {
-		return false;
-	}
-	currDir = buf;
-	return true;
+bool
+SysUtil::rename (const std::string &oldname, const std::string &newName)
+{
+	return ::rename (oldname.c_str(), oldname.c_str()) == 0;
 }

@@ -24,6 +24,8 @@ struct Handlers {
 	static void CDUP_handler (ClientContext &context, const std::vector<std::string> args);
 	static void CWD_handler (ClientContext &context, const std::vector<std::string> args);
 	static void NLST_handler (ClientContext &context, const std::vector<std::string> args);
+	static void RNFR_handler (ClientContext &context, const std::vector<std::string> args);
+	static void RNTO_handler (ClientContext &context, const std::vector<std::string> args);
 
 	static std::unordered_map<std::string, Handler> &getHandlerMap ()
 	{
@@ -38,6 +40,8 @@ struct Handlers {
 			{"CDUP", CDUP_handler},
 			{"CWD", CWD_handler},
 			{"NLST", NLST_handler},
+			{"RNFR", RNFR_handler},
+			{"RNTO", RNTO_handler},
 		};
 		return handlerMap;
 	}
@@ -115,6 +119,46 @@ Handlers::NLST_handler (ClientContext &context, const std::vector<std::string> a
 
 	context.dataFd.close();
 	FTPUtil::sendCmd (context.ctrlFd, {"226", "Directory send OK."});
+}
+
+void
+Handlers::RNFR_handler (ClientContext &context, const std::vector<std::string> args)
+{
+	if (!context.isLogined)
+		return;
+	if (args.size() != 2) {
+		FTPUtil::sendCmd (context.ctrlFd, {"501", "Parameter error."});
+		return;
+	}
+	context.RNFR_path = SysUtil::absolutePath (context.currDir, args[1]);
+	if (context.RNFR_path.empty()) {
+		FTPUtil::sendCmd (context.ctrlFd, {"550", "File not exists."});
+	} else {
+		context.RNFR_path = SysUtil::realPath (context.RNFR_path);
+		FTPUtil::sendCmd (context.ctrlFd, {"350", "File exists, ready for destination name."});
+	}
+}
+
+void
+Handlers::RNTO_handler (ClientContext &context, const std::vector<std::string> args)
+{
+	if (!context.isLogined)
+		return;
+	if (args.size() != 2) {
+		FTPUtil::sendCmd (context.ctrlFd, {"501", "Parameter error."});
+		return;
+	}
+	if (context.RNFR_path.empty()) {
+		FTPUtil::sendCmd (context.ctrlFd, {"503", "RNFR required first."});
+		return;
+	}
+	context.RNTO_path = SysUtil::absolutePath (context.currDir, args[1]);
+	if (SysUtil::rename (context.RNFR_path, context.RNTO_path))
+		FTPUtil::sendCmd (context.ctrlFd, {"250", "Rename successful."});
+	else
+		FTPUtil::sendCmd (context.ctrlFd, {"550", "Rename failed."});
+
+	context.RNFR_path = context.RNTO_path = "";
 }
 
 void
