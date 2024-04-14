@@ -275,7 +275,7 @@ Handlers::LIST_handler (ClientContext &context, const std::vector<std::string> a
 	if (items.begin() != items.end())
 		items.erase (items.begin());
 
-	context.waitForPassiveDataConnection();
+	// context.waitForPassiveDataConnection();
 	FTPUtil::sendCmd (context.ctrlFd, {"150", "Here comes the directory listing."});
 
 	std::for_each (items.begin(), items.end(), [&] (const std::string &item) {
@@ -330,11 +330,16 @@ Handlers::PASV_handler (ClientContext &context, const std::vector<std::string> a
 								   "," + std::to_string (tailByte) + ").";
 			FTPUtil::sendCmd (context.ctrlFd, {"227", addrInfo});
 
-			context.waitForPassiveDataConnection = [&] {
-				int dataFd	   = accept (listenFd, nullptr, nullptr);
-				context.dataFd = dataFd;
-				::close (listenFd);
-			};
+
+			int dataFd	   = accept (listenFd, nullptr, nullptr);
+			context.dataFd = dataFd;
+			::close (listenFd);
+			// context.waitForPassiveDataConnection = [&] {
+			// 	int dataFd	   = accept (listenFd, nullptr, nullptr);
+			// 	context.dataFd = dataFd;
+			// 	::close (listenFd);
+			// };
+			context.waitForPassiveDataConnection = [] {};
 		});
 
 		// FTPUtil::sendCmd (context.ctrlFd, {"227", "Entering Passive Mode (139,199,176,107,255,253)."});
