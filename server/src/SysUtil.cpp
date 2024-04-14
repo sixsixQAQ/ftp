@@ -46,7 +46,8 @@ SysUtil::getHomeOf (const std::string &username)
 std::string
 SysUtil::listDir (const std::string &path)
 {
-	FILE *inStream = popen ("ls -l", "r");
+	std::string cmd = "ls -l " + path;
+	FILE *inStream	= popen (cmd.c_str(), "r");
 	if (inStream == nullptr) {
 		return "";
 	}
