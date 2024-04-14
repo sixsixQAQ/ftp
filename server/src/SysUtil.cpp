@@ -45,10 +45,9 @@ SysUtil::getHomeOf (const std::string &username)
 }
 
 std::string
-SysUtil::listDir (const std::string &path)
+SysUtil::getShellResult (std::string &cmd)
 {
-	std::string cmd = "ls -l " + path;
-	FILE *inStream	= popen (cmd.c_str(), "r");
+	FILE *inStream = popen (cmd.c_str(), "r");
 	if (inStream == nullptr) {
 		return "";
 	}
@@ -63,6 +62,20 @@ SysUtil::listDir (const std::string &path)
 	}
 	pclose (inStream);
 	return ret;
+}
+
+std::string
+SysUtil::listDir (const std::string &path)
+{
+	std::string cmd = "ls -l " + path;
+	return getShellResult (cmd);
+}
+
+std::string
+SysUtil::listDirNameOnly (const std::string &path)
+{
+	std::string cmd = "ls -1 " + path;
+	return getShellResult (cmd);
 }
 
 bool

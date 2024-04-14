@@ -87,6 +87,37 @@ Handlers::PASS_handler (ClientContext &context, const std::vector<std::string> a
 }
 
 void
+Handlers::NLST_handler (ClientContext &context, const std::vector<std::string> args)
+{
+	std::string result;
+	if (args.size() == 1) {
+		result = SysUtil::listDirNameOnly (context.currDir);
+	} else if (args.size() == 2) {
+		result = SysUtil::listDirNameOnly (args[1]);
+	} else {
+		return;
+	}
+	//转成RFC959 3.4节要求的<CRLF>发送
+	std::stringstream ss (result);
+	std::vector<std::string> items;
+	std::string buf;
+	while (std::getline (ss, buf)) {
+		items.emplace_back (buf);
+	}
+	if (items.begin() != items.end())
+		items.erase (items.begin());
+
+	FTPUtil::sendCmd (context.ctrlFd, {"150", "Here comes the directory listing."});
+
+	std::for_each (items.begin(), items.end(), [&] (const std::string &item) {
+		FTPUtil::sendCmd (context.dataFd.getFd(), {item});
+	});
+
+	context.dataFd.close();
+	FTPUtil::sendCmd (context.ctrlFd, {"226", "Directory send OK."});
+}
+
+void
 Handlers::LIST_handler (ClientContext &context, const std::vector<std::string> args)
 {
 	std::string result;
@@ -225,10 +256,4 @@ Handlers::CWD_handler (ClientContext &context, const std::vector<std::string> ar
 		else
 			FTPUtil::sendCmd (context.ctrlFd, {"550", "Failed to change directory."});
 	}
-}
-
-void
-Handlers::NLST_handler (ClientContext &context, const std::vector<std::string> args)
-{
-	
 }
