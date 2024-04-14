@@ -130,11 +130,10 @@ Handlers::RNFR_handler (ClientContext &context, const std::vector<std::string> a
 		FTPUtil::sendCmd (context.ctrlFd, {"501", "Parameter error."});
 		return;
 	}
-	context.RNFR_path = SysUtil::absolutePath (context.currDir, args[1]);
+	context.RNFR_path = SysUtil::realAbsoutePath (context.currDir, args[1]);
 	if (context.RNFR_path.empty()) {
 		FTPUtil::sendCmd (context.ctrlFd, {"550", "File not exists."});
 	} else {
-		context.RNFR_path = SysUtil::realPath (context.RNFR_path);
 		FTPUtil::sendCmd (context.ctrlFd, {"350", "File exists, ready for destination name."});
 	}
 }
