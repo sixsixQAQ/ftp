@@ -97,7 +97,7 @@ Handlers::NLST_handler (ClientContext &context, const std::vector<std::string> a
 	if (args.size() == 1) {
 		result = SysUtil::listDirNameOnly (context.currDir);
 	} else if (args.size() == 2) {
-		result = SysUtil::listDirNameOnly (args[1]);
+		result = SysUtil::listDirNameOnly (SysUtil::realAbsoutePath (context.currDir, args[1]));
 	} else {
 		return;
 	}
@@ -167,7 +167,7 @@ Handlers::LIST_handler (ClientContext &context, const std::vector<std::string> a
 	if (args.size() == 1) {
 		result = SysUtil::listDir (context.currDir);
 	} else if (args.size() == 2) {
-		result = SysUtil::listDir (args[1]);
+		result = SysUtil::listDir (SysUtil::realAbsoutePath (context.currDir, args[1]));
 	} else {
 		return;
 	}
