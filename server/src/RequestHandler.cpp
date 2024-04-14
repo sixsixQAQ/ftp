@@ -53,6 +53,7 @@ struct Handlers {
 			{"DELE", DELE_handler},
 			{"RETR", RETR_handler},
 			{"STOR", STOR_handler},
+			{"SYST", SYST_handler},
 		};
 		return handlerMap;
 	}
