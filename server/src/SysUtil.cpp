@@ -45,9 +45,10 @@ SysUtil::getHomeOf (const std::string &username)
 }
 
 std::string
-SysUtil::getShellResult (std::string &cmd)
+SysUtil::getShellResult (const std::string &cmd)
 {
-	FILE *inStream = popen (cmd.c_str(), "r");
+	std::string cmd2 = cmd + " 2>/dev/null";
+	FILE *inStream	 = popen (cmd2.c_str(), "r");
 	if (inStream == nullptr) {
 		return "";
 	}
