@@ -155,3 +155,14 @@ SysUtil::removeFile (const std::string &path)
 {
 	return ::unlink (path.c_str()) == 0;
 }
+
+uint64_t
+SysUtil::fileSize (const std::string &path)
+{
+	struct stat st;
+	if (stat (path.c_str(), &st) == 0) {
+		return st.st_size;
+	} else {
+		return 0;
+	}
+}

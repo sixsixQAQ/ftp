@@ -16,6 +16,7 @@ struct SysUtil : public ErrorUtil {
 	static bool createDir (const std::string &path);
 	static bool removeDir (const std::string &path);
 	static bool removeFile (const std::string &path);
+	static uint64_t fileSize (const std::string &path);
 private:
 	static std::string getShellResult (const std::string &cmd);
 };

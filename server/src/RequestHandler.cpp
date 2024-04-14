@@ -32,6 +32,7 @@ struct Handlers {
 	static void RETR_handler (ClientContext &context, const std::vector<std::string> args);
 	static void STOR_handler (ClientContext &context, const std::vector<std::string> args);
 	static void SYST_handler (ClientContext &context, const std::vector<std::string> args);
+	static void SIZE_handler (ClientContext &context, const std::vector<std::string> args);
 
 	static std::unordered_map<std::string, Handler> &getHandlerMap ()
 	{
@@ -54,7 +55,7 @@ struct Handlers {
 			{"RETR", RETR_handler},
 			{"STOR", STOR_handler},
 			{"SYST", SYST_handler},
-		};
+			{"SIZE", SIZE_handler}};
 		return handlerMap;
 	}
 };
@@ -262,7 +263,25 @@ Handlers::SYST_handler (ClientContext &context, const std::vector<std::string> a
 		FTPUtil::sendCmd (context.ctrlFd, {"501", "Parameter error."});
 		return;
 	}
-	FTPUtil::sendCmd (context.ctrlFd, {"215", "UNIX Type: L8\r\n"});
+	FTPUtil::sendCmd (context.ctrlFd, {"215", "UNIX Type: L8"});
+}
+
+void
+Handlers::SIZE_handler (ClientContext &context, const std::vector<std::string> args)
+{
+	if (!context.isLogined)
+		return;
+	if (args.size() != 2) {
+		FTPUtil::sendCmd (context.ctrlFd, {"501", "Parameter error."});
+		return;
+	}
+
+	const std::string realAbsPath = SysUtil::realAbsolutePath (context.currDir, args[1]);
+	if (realAbsPath.empty()) {
+		FTPUtil::sendCmd (context.ctrlFd, {"550", "File not exists."});
+		return;
+	}
+	FTPUtil::sendCmd (context.ctrlFd, {"213", std::to_string (SysUtil::fileSize (realAbsPath))});
 }
 
 void
