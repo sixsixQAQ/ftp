@@ -172,7 +172,6 @@ NetUtil::withPortBind (uint16_t port, std::function<void (int listenFd, struct s
 		return;
 	}
 	callback (listenFd, servAddr);
-	close (listenFd);
 }
 
 void

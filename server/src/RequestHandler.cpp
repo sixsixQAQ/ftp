@@ -9,6 +9,7 @@
 #include <cassert>
 #include <functional>
 #include <sstream>
+#include <unistd.h>
 #include <unordered_map>
 
 struct Handlers {
@@ -107,7 +108,7 @@ Handlers::NLST_handler (ClientContext &context, const std::vector<std::string> a
 	if (args.size() == 1) {
 		result = SysUtil::listDirNameOnly (context.currDir);
 	} else if (args.size() == 2) {
-		result = SysUtil::listDirNameOnly (SysUtil::realAbsoutePath (context.currDir, args[1]));
+		result = SysUtil::listDirNameOnly (SysUtil::realAbsolutePath (context.currDir, args[1]));
 	} else {
 		return;
 	}
@@ -121,6 +122,7 @@ Handlers::NLST_handler (ClientContext &context, const std::vector<std::string> a
 	if (items.begin() != items.end())
 		items.erase (items.begin());
 
+	context.waitForPassiveDataConnection();
 	FTPUtil::sendCmd (context.ctrlFd, {"150", "Here comes the directory listing."});
 
 	std::for_each (items.begin(), items.end(), [&] (const std::string &item) {
@@ -140,7 +142,7 @@ Handlers::RNFR_handler (ClientContext &context, const std::vector<std::string> a
 		FTPUtil::sendCmd (context.ctrlFd, {"501", "Parameter error."});
 		return;
 	}
-	context.RNFR_path = SysUtil::realAbsoutePath (context.currDir, args[1]);
+	context.RNFR_path = SysUtil::realAbsolutePath (context.currDir, args[1]);
 	if (context.RNFR_path.empty()) {
 		FTPUtil::sendCmd (context.ctrlFd, {"550", "File not exists."});
 	} else {
@@ -181,7 +183,7 @@ Handlers::MKD_handler (ClientContext &context, const std::vector<std::string> ar
 	}
 	if (SysUtil::createDir (SysUtil::absolutePath (context.currDir, args[1])))
 		FTPUtil::sendCmd (
-			context.ctrlFd, {"257", "\"" + SysUtil::realAbsoutePath (context.currDir, args[1]) + "\" created."}
+			context.ctrlFd, {"257", "\"" + SysUtil::realAbsolutePath (context.currDir, args[1]) + "\" created."}
 		);
 	else
 		FTPUtil::sendCmd (context.ctrlFd, {"550", "Directory creation failed."});
@@ -196,7 +198,7 @@ Handlers::RMD_handler (ClientContext &context, const std::vector<std::string> ar
 		FTPUtil::sendCmd (context.ctrlFd, {"501", "Parameter error."});
 		return;
 	}
-	const std::string realAbsPath = SysUtil::realAbsoutePath (context.currDir, args[1]);
+	const std::string realAbsPath = SysUtil::realAbsolutePath (context.currDir, args[1]);
 	if (SysUtil::removeDir (realAbsPath))
 		FTPUtil::sendCmd (context.ctrlFd, {"250", "Directory \"" + realAbsPath + "\" was removed."});
 	else
@@ -212,7 +214,7 @@ Handlers::DELE_handler (ClientContext &context, const std::vector<std::string> a
 		FTPUtil::sendCmd (context.ctrlFd, {"501", "Parameter error."});
 		return;
 	}
-	const std::string realAbsPath = SysUtil::realAbsoutePath (context.currDir, args[1]);
+	const std::string realAbsPath = SysUtil::realAbsolutePath (context.currDir, args[1]);
 	if (SysUtil::removeFile (realAbsPath))
 		FTPUtil::sendCmd (context.ctrlFd, {"250", "File \"" + args[1] + "\" was removed."});
 	else
@@ -228,12 +230,13 @@ Handlers::RETR_handler (ClientContext &context, const std::vector<std::string> a
 		FTPUtil::sendCmd (context.ctrlFd, {"501", "Parameter error."});
 		return;
 	}
-	std::string realAbsPath = SysUtil::realAbsoutePath (context.currDir, args[1]);
+	std::string realAbsPath = SysUtil::realAbsolutePath (context.currDir, args[1]);
 	if (realAbsPath.empty()) {
 		FTPUtil::sendCmd (context.ctrlFd, {"550", "File not exists."});
 		return;
 	}
 	FTPUtil::sendCmd (context.ctrlFd, {"150", "File status okay; about to open data connection."});
+	context.waitForPassiveDataConnection();
 	NetUtil::syncLocalToRemote (context.dataFd, realAbsPath);
 	FTPUtil::sendCmd (context.ctrlFd, {"226", "226 Transfer complete."});
 	context.ctrlFd.close();
@@ -242,6 +245,13 @@ Handlers::RETR_handler (ClientContext &context, const std::vector<std::string> a
 void
 Handlers::STOR_handler (ClientContext &context, const std::vector<std::string> args)
 {
+	if (!context.isLogined)
+		return;
+	if (args.size() != 2) {
+		FTPUtil::sendCmd (context.ctrlFd, {"501", "Parameter error."});
+		return;
+	}
+	std::string realAbsPath = SysUtil::absolutePath (context.currDir, args[1]);
 }
 
 void
@@ -251,7 +261,7 @@ Handlers::LIST_handler (ClientContext &context, const std::vector<std::string> a
 	if (args.size() == 1) {
 		result = SysUtil::listDir (context.currDir);
 	} else if (args.size() == 2) {
-		result = SysUtil::listDir (SysUtil::realAbsoutePath (context.currDir, args[1]));
+		result = SysUtil::listDir (SysUtil::realAbsolutePath (context.currDir, args[1]));
 	} else {
 		return;
 	}
@@ -265,6 +275,7 @@ Handlers::LIST_handler (ClientContext &context, const std::vector<std::string> a
 	if (items.begin() != items.end())
 		items.erase (items.begin());
 
+	context.waitForPassiveDataConnection();
 	FTPUtil::sendCmd (context.ctrlFd, {"150", "Here comes the directory listing."});
 
 	std::for_each (items.begin(), items.end(), [&] (const std::string &item) {
@@ -318,12 +329,12 @@ Handlers::PASV_handler (ClientContext &context, const std::vector<std::string> a
 			std::string addrInfo = std::string ("Entering Passive Mode (139,199,176,107,") + std::to_string (headByte) +
 								   "," + std::to_string (tailByte) + ").";
 			FTPUtil::sendCmd (context.ctrlFd, {"227", addrInfo});
-			std::thread acceptThread = std::thread ([&] {
-				// TODO：这里应该加客户端信息检验
+
+			context.waitForPassiveDataConnection = [&] {
 				int dataFd	   = accept (listenFd, nullptr, nullptr);
 				context.dataFd = dataFd;
-			});
-			acceptThread.join();
+				::close (listenFd);
+			};
 		});
 
 		// FTPUtil::sendCmd (context.ctrlFd, {"227", "Entering Passive Mode (139,199,176,107,255,253)."});

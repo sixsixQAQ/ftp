@@ -4,6 +4,7 @@
 #include "BackableReader.hpp"
 #include "Toggle.hpp"
 
+#include <functional>
 #include <netinet/in.h>
 #include <string>
 
@@ -15,11 +16,12 @@ struct ClientContext {
 	BackableReader ctrlReader;
 	Toggle PASVToggle;
 	struct sockaddr_in clientAddr;
-	enum RepresentationType representationType = RepresentationType::ASCII;
-	std::string username					   = "";
-	std::string password					   = "";
-	std::string currDir						   = "";
-	std::string RNFR_path					   = "";
-	std::string RNTO_path					   = "";
-	bool isLogined							   = false;
+	enum RepresentationType representationType		   = RepresentationType::ASCII;
+	std::string username							   = "";
+	std::string password							   = "";
+	std::string currDir								   = "";
+	std::string RNFR_path							   = "";
+	std::string RNTO_path							   = "";
+	bool isLogined									   = false;
+	std::function<void()> waitForPassiveDataConnection = nullptr;
 };

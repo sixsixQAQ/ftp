@@ -133,7 +133,7 @@ SysUtil::rename (const std::string &oldname, const std::string &newName)
 }
 
 std::string
-SysUtil::realAbsoutePath (const std::string &currDir, const std::string &path)
+SysUtil::realAbsolutePath (const std::string &currDir, const std::string &path)
 {
 	return SysUtil::realPath (SysUtil::absolutePath (currDir, path));
 }
