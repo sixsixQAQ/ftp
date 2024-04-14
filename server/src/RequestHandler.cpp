@@ -31,6 +31,7 @@ struct Handlers {
 	static void DELE_handler (ClientContext &context, const std::vector<std::string> args);
 	static void RETR_handler (ClientContext &context, const std::vector<std::string> args);
 	static void STOR_handler (ClientContext &context, const std::vector<std::string> args);
+	static void SYST_handler (ClientContext &context, const std::vector<std::string> args);
 
 	static std::unordered_map<std::string, Handler> &getHandlerMap ()
 	{
@@ -249,6 +250,18 @@ Handlers::STOR_handler (ClientContext &context, const std::vector<std::string> a
 		return;
 	}
 	std::string realAbsPath = SysUtil::absolutePath (context.currDir, args[1]);
+}
+
+void
+Handlers::SYST_handler (ClientContext &context, const std::vector<std::string> args)
+{
+	if (!context.isLogined)
+		return;
+	if (args.size() != 1) {
+		FTPUtil::sendCmd (context.ctrlFd, {"501", "Parameter error."});
+		return;
+	}
+	FTPUtil::sendCmd (context.ctrlFd, {"215", "UNIX Type: L8\r\n"});
 }
 
 void
