@@ -9,12 +9,13 @@
 #include <string>
 
 enum class RepresentationType { ASCII, BINARY };
+enum class TransferMode { PASV, PORT };
 
 struct ClientContext {
 	ControlFd ctrlFd = -1;
 	DataFd dataFd	 = -1;
 	BackableReader ctrlReader;
-	Toggle PASVToggle;
+	TransferMode transferMode = TransferMode::PASV;
 	struct sockaddr_in clientAddr;
 	enum RepresentationType representationType = RepresentationType::ASCII;
 	std::string username					   = "";

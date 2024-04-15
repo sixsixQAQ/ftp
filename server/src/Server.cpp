@@ -77,11 +77,11 @@ public:
 
 		std::lock_guard<std::mutex> lock (m_contextMutex);
 		ClientContext context;
-		context.PASVToggle.turnOff();
-		context.ctrlFd	   = fd;
-		context.isLogined  = false;
-		context.clientAddr = addr;
-		context.ctrlReader = BackableReader (fd);
+		context.transferMode = TransferMode::PASV;
+		context.ctrlFd		 = fd;
+		context.isLogined	 = false;
+		context.clientAddr	 = addr;
+		context.ctrlReader	 = BackableReader (fd);
 		m_contextMap.insert ({fd, context});
 	}
 
