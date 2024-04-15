@@ -370,7 +370,7 @@ Handlers::PASV_handler (ClientContext &context, const std::vector<std::string> a
 			FTPUtil::sendCmd (context.ctrlFd, {"227", addrInfo});
 
 			{
-				// TODO:这里应该加错误验证和反馈
+				// TODO:这里应该加客户端验证和反馈
 				int dataFd	   = accept (listenFd, nullptr, nullptr);
 				context.dataFd = dataFd;
 			}
