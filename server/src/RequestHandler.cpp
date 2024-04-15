@@ -237,6 +237,7 @@ Handlers::RETR_handler (ClientContext &context, const std::vector<std::string> a
 		return;
 	}
 	FTPUtil::sendCmd (context.ctrlFd, {"150", "File status okay; about to open data connection."});
+	// TODO:这个传输应该区分ASCII模式和BINARY模式。
 	NetUtil::syncLocalToRemote (context.dataFd, realAbsPath);
 	context.dataFd.close();
 	FTPUtil::sendCmd (context.ctrlFd, {"226", "Transfer complete."});
@@ -257,6 +258,7 @@ Handlers::STOR_handler (ClientContext &context, const std::vector<std::string> a
 		return;
 	}
 	FTPUtil::sendCmd (context.ctrlFd, {"150", "File status okay; about to open data connection."});
+	// TODO:这个传输一个区分ASCII模式和BINARY模式。
 	NetUtil::syncRemoteToLocal (context.dataFd, absPath);
 	context.dataFd.close();
 	FTPUtil::sendCmd (context.ctrlFd, {"226", "Transfer complete."});
