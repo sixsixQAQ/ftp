@@ -10,6 +10,7 @@ public:
 	using ArgList = std::vector<std::string>;
 	using CmdList = std::vector<std::shared_ptr<ClientCmd>>;
 	ClientCmd (Context &context, const ArgList &args);
+	virtual ~ClientCmd() = default;
 
 	static std::shared_ptr<ClientCmd> cmdFactory (Context &context, const ArgList &args);
 	void templateExecution ();
