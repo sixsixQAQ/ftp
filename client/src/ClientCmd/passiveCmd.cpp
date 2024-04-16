@@ -25,8 +25,11 @@ void
 passiveCmd::exec()
 {
 	if (m_context.transferMode == Context::TransferMode::PASV) {
-		m_context.transferMode = Context::TransferMode::PORT;
-		m_context.outStream << "FTP-Data mode: PORT.\n";
+		m_context.outStream << "Sorry, only PORT mode supported.\n";
+
+		// TODO:全面支持PORT模式
+		//  m_context.transferMode = Context::TransferMode::PORT;
+		//  m_context.outStream << "FTP-Data mode: PORT.\n";
 	} else {
 		m_context.transferMode = Context::TransferMode::PASV;
 		m_context.outStream << "FTP-Data mode: PASV.\n";
