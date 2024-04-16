@@ -21,6 +21,6 @@ public:
 	static std::vector<std::string> echoResponse (
 		ControlFd connFd, std::ostream &out = std::cout
 	);
-	static void PASVResponse (ControlFd connFd, std::string &ip, uint16_t &port);
+	static void PASVResponse (const std::string& response, std::string &ip, uint16_t &port);
 	static long sizeResponse (ControlFd connFd);
 };

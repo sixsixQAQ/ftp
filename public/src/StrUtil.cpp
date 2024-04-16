@@ -28,7 +28,7 @@ StrUtil::split (const std::string &text, const std::string &delimStr)
 			tokens.emplace_back (text.substr (nextLineBeg));
 			break;
 		} else {
-			tokens.emplace_back (text.substr (nextLineBeg, nextDelim + delimStr.length()));
+			tokens.emplace_back (text.substr (nextLineBeg, nextDelim - nextLineBeg + delimStr.length()));
 			nextLineBeg = nextDelim + delimStr.length();
 		}
 	}

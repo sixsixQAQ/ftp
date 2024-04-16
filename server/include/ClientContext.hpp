@@ -2,7 +2,6 @@
 
 #include "AbstractFd.hpp"
 #include "BackableReader.hpp"
-#include "Toggle.hpp"
 
 #include <functional>
 #include <netinet/in.h>

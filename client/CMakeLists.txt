@@ -2,7 +2,10 @@ cmake_minimum_required(VERSION 3.20)
 
 project(client)
 
-FILE(GLOB SRC "src/*.cpp")
+FILE(GLOB SRC "src/*.cpp"
+              "src/ClientCmd/*.cpp"
+)
+
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 

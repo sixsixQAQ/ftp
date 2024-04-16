@@ -6,7 +6,6 @@
 #include "ClientContext.hpp"
 #include "RequestHandler.hpp"
 #include "ServerUtil.hpp"
-#include "Toggle.hpp"
 
 #include <algorithm>
 #include <assert.h>

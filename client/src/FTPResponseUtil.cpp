@@ -246,17 +246,8 @@ FTPResponseUtil::echoResponse (ControlFd connFd, std::ostream &out)
  * "227 Entering Passive Mode (139,199,176,107,143,179).\r\n"
  */
 void
-FTPResponseUtil::PASVResponse (ControlFd connFd, std::string &ip, uint16_t &port)
+FTPResponseUtil::PASVResponse (const std::string &response, std::string &ip, uint16_t &port)
 {
-	std::string response;
-	{
-		auto responseVector = FTPResponseUtil::getResponse (connFd);
-		if (responseVector.size() < 1) {
-			return;
-		} else {
-			response = responseVector[0];
-		}
-	}
 	static std::regex pattern (R"I_LOVE_YOU(\((.*?,.*?,.*?,.*?),(.*?),(.*?)\))I_LOVE_YOU");
 
 	std::string rawIp;
@@ -287,7 +278,6 @@ FTPResponseUtil::PASVResponse (ControlFd connFd, std::string &ip, uint16_t &port
 		std::replace (rawIp.begin(), rawIp.end(), ',', '.');
 		ip = rawIp;
 	} catch (...) {
-		std::cerr << "response:[" << response << "]\n";
 		throw;
 	}
 }

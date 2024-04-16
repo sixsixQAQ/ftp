@@ -3,7 +3,6 @@
 #include "BaseUtil.hpp"
 #include "EasySelect.hpp"
 #include "Server.hpp"
-#include "Toggle.hpp"
 
 #include <arpa/inet.h>
 #include <condition_variable>
