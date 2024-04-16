@@ -21,3 +21,5 @@ $ mkdir build && cd build
 $ cmake ../
 $ cmake --build .
 ```
+
+这个分支是重构前的分支，方便追溯。
