@@ -1,36 +1,10 @@
-#include "ClientCmd/ClientCmd.hpp"
-#include "StrUtil.hpp"
-
-std::vector<std::string>
-parseOneLine (std::istream &inStream)
-{
-	std::string cmdLine;
-	getline (inStream, cmdLine);
-	return StrUtil::splitCmdLine (cmdLine);
-}
+#include "InteractiveCli.hpp"
 
 int
 main ()
 {
-	std::cout << "FreeFTP-Client v1.0\n";
+	InteractiveCli cli;
+	cli.start();
 
-	Context context (std::cin, std::cout);
-
-	std::string cmdLine;
-
-	for (;;) {
-		context.outStream << "ftp>";
-		std::vector<std::string> args = parseOneLine (std::cin);
-
-		if (args.empty()) {
-			continue;
-		}
-
-		auto cmd = ClientCmd::cmdFactory (context, args);
-		if (cmd) {
-			cmd->templateExecution();
-		} else {
-			context.outStream << "Invalid command: " << args[0] << "\n";
-		}
-	}
+	return 0;
 }

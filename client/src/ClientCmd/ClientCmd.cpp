@@ -14,12 +14,13 @@ ClientCmd::cmdFactory (Context &context, const ArgList &args)
 	if (args.size() == 0) {
 		return nullptr;
 	}
-
-	auto it = getFactoryMap().find (args[0]);
-	if (it == getFactoryMap().end()) {
-		return nullptr;
+	auto factoryList = getFactoryList();
+	for (auto it : factoryList) {
+		if (it.first == args[0]) {
+			return it.second (context, args);
+		}
 	}
-	return it->second (context, args);
+	return nullptr;
 }
 
 void

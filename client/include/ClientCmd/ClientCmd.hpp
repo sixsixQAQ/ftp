@@ -19,7 +19,7 @@ protected:
 
 	using Factory = std::function<std::shared_ptr<ClientCmd> (Context &, const ArgList &)>;
 
-	static const std::map<std::string, Factory> &getFactoryMap ();
+	static const std::vector<std::pair<std::string, Factory>> &getFactoryList ();
 
 	virtual bool isDataConnectionNeeded ();
 	virtual bool isControlConnectionNeeded ();

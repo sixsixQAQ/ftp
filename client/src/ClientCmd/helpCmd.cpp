@@ -27,7 +27,7 @@ helpCmd::exec()
 
 	if (m_args.size() == 1) {
 		int i = 1;
-		for (auto &cmd : ClientCmd::getFactoryMap()) {
+		for (auto &cmd : ClientCmd::getFactoryList()) {
 			m_context.outStream << cmd.first << "\t\t";
 			if ((i++ % 5) == 0)
 				m_context.outStream << "\n";
