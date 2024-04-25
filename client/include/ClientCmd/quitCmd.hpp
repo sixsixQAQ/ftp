@@ -2,6 +2,13 @@
 
 #include "ClientCmd.hpp"
 
+#include <exception>
+
+class quitException : public std::exception {
+public:
+	using exception::exception;
+};
+
 class quitCmd : public ClientCmd {
 public:
 	using ClientCmd::ClientCmd;

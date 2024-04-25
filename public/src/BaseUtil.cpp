@@ -8,6 +8,7 @@
 #include <numeric>
 #include <sstream>
 #include <string.h>
+#include <termios.h>
 #include <unistd.h>
 
 int
@@ -118,6 +119,27 @@ IOUtil::readAll (int fd)
 		stream.write (buf, nRead);
 	}
 	return stream.str();
+}
+
+std::string
+IOUtil::getpass (const std::string &prompt, std::istream &iStream, std::ostream &oStream)
+{
+	static char password[4096];
+
+	oStream << prompt;
+
+	struct termios oldt, newt;
+	tcgetattr (STDIN_FILENO, &oldt);
+	newt = oldt;
+	newt.c_lflag &= ~ECHO;
+	tcsetattr (STDIN_FILENO, TCSANOW, &newt);
+
+	iStream.getline(password, sizeof(password));
+
+	newt.c_lflag |= ECHO;
+	tcsetattr (STDIN_FILENO, TCSANOW, &newt);
+
+	return password;
 }
 
 std::string

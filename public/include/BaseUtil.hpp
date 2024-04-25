@@ -33,4 +33,5 @@ struct IOUtil : public ErrorUtil {
 	static size_t writen (int sockfd, const char *buf, size_t size);
 	static size_t readn (int sockfd, char *buf, size_t size);
 	static std::string readAll (int sockfd);
+	static std::string getpass (const std::string &prompt, std::istream &iStream, std::ostream &oStream);
 };

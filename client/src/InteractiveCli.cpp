@@ -12,17 +12,22 @@ parseOneLine (std::istream &inStream)
 }
 
 void
-InteractiveCli::start()
+InteractiveCli::start (std::istream &inStream, std::ostream &outStream)
 {
-	std::cout << "FreeFTP-Client v1.0\n";
+	outStream << "FreeFTP-Client v1.0\n";
 
-	Context context (std::cin, std::cout);
+	Context context (inStream, outStream);
 
 	std::string cmdLine;
 
 	for (;;) {
 		context.outStream << "ftp> ";
-		std::vector<std::string> args = parseOneLine (std::cin);
+
+		std::vector<std::string> args = parseOneLine (context.inStream);
+
+		if (context.inStream.fail()) {
+			break; //无输入，停止服务
+		}
 
 		if (args.empty()) {
 			continue;

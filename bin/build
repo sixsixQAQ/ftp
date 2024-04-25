@@ -1,4 +1,5 @@
 #!/bin/bash
+
 cd ../build
 cmake ../
-cmake --build . 
+make -j40

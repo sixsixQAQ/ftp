@@ -27,5 +27,7 @@ quitCmd::exec()
 	auto sender = ProtocolCmdSender::insatnce();
 	if (m_context.ctrlFd.isOpened())
 		sender.QUIT (m_context.ctrlFd);
-	exit (EXIT_SUCCESS);
+	m_context.ctrlFd.close();
+	m_context.dataFd.close();
+	throw quitException();
 }

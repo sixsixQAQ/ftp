@@ -27,11 +27,12 @@ openCmd::help()
 void
 openCmd::exec()
 {
+	constexpr uint16_t default_port = 21;
 	initFixedCallback();
 
 	if (m_args.size() == 2)
-		m_context.ctrlFd = NetUtil::connectToServer (m_args[1], 21);
-	else if (m_args.size() == 2)
+		m_context.ctrlFd = NetUtil::connectToServer (m_args[1], default_port);
+	else if (m_args.size() == 3)
 		m_context.ctrlFd = NetUtil::connectToServer (m_args[1], std::atoi (m_args[2].c_str()));
 	if (m_context.ctrlFd == -1) {
 		m_context.outStream << "Failed to connect.\n";
@@ -48,9 +49,9 @@ openCmd::exec()
 		sender.USER (m_context.ctrlFd, userName);
 	}
 	{
-		m_context.outStream << "Password:";
-		std::string password;
-		getline (m_context.inStream, password);
+		std::string password = IOUtil::getpass ("Password:", m_context.inStream, m_context.outStream);
+		m_context.outStream << "\n";
+		// getline (m_context.inStream, password);
 		sender.PASS (m_context.ctrlFd, password);
 	}
 	// TODO:这里根据响应码记录用户是否登录成功、记录登录信息
