@@ -1,5 +1,5 @@
 #!/bin/bash
 
 cd ../build
-cmake ../
+cmake ../ -DCMAKE_C_COMPILER=distcc -DCMAKE_CXX_COMPILER=distcc
 make -j40
